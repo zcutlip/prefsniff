@@ -195,7 +195,7 @@ class PSChangeTypeDate(PSChangeTypeString):
         raise Exception("%s not implemented" % self.__class__.__name__)
 
 
-class PrefSleuth(object):
+class PrefSniff(object):
     CHANGE_TYPES = {int: PSChangeTypeInt,
                     float: PSChangeTypeFloat,
                     str: PSChangeTypeString,
@@ -440,7 +440,7 @@ def main(plistpath, monitor_dir_events=False, print_diffs=False):
     else:
         while True:
             try:
-                diffs = PrefSleuth(plistpath)
+                diffs = PrefSniff(plistpath)
             except KeyboardInterrupt:
                 print("Exiting.")
                 exit(0)
