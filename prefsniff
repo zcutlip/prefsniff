@@ -11,9 +11,9 @@ from watchdog.observers import Observer
 import os.path
 from Queue import Queue
 from Queue import Empty as QueueEmpty
-
+from pprint import pprint
 import xml.etree.ElementTree as ET
-
+import inspect
 
 """
 Pulling out <dict> from xml plist:
@@ -46,6 +46,12 @@ This creates or replaces 'mydict'
 defaults write foo.bar mydict -dict-add mysubdict "<dict><key>somekey</key><string>1</string></dict>"
 defaults write foo.bar mydict -dict-add enabled "<integer>1</integer>"
 """
+
+class PSniffException(Exception):
+    pass
+
+class PSChangeTypeException(PSniffException):
+    pass
 
 
 class PSChangeTypeString(object):
@@ -84,7 +90,7 @@ class PSChangeTypeFloat(PSChangeTypeString):
         super(PSChangeTypeFloat, self).__init__(domain, key)
         self.type = "-float"
         if not isinstance(value, float):
-            raise Exception("Float required for -float prefs change.")
+            raise PSChangeTypeException("Float required for -float prefs change.")
         self.value = str(value)
 
 
@@ -94,7 +100,7 @@ class PSChangeTypeInt(PSChangeTypeString):
         super(PSChangeTypeInt, self).__init__(domain, key)
         self.type = "-int"
         if not isinstance(value, int):
-            raise Exception("Integer required for -int prefs change.")
+            raise PSChangeTypeException("Integer required for -int prefs change.")
         self.value = str(value)
 
 
@@ -104,7 +110,7 @@ class PSChangeTypeBool(PSChangeTypeString):
         super(PSChangeTypeBool, self).__init__(domain, key)
         self.type = "-bool"
         if not isinstance(value, bool):
-            raise Exception("Boolean required for -bool prefs change.")
+            raise PSChangeTypeException("Boolean required for -bool prefs change.")
         self.value = str(value)
 
 
@@ -134,10 +140,12 @@ class PSChangeTypeDict(PSChangeTypeString):
         children = list(tree.getroot())
         # there can only be one element inside <plist>
         if len(children) < 1:
-            raise Exception("Empty dictionary for key %s" % str(self.key))
+            fn=inspect.getframeinfo(inspect.currentframe()).function
+            raise PSChangeTypeException("%s: Empty dictionary for key %s" % (fn,str(self.key)))
         if len(children) > 1:
-            raise Exception(
-                "Something went wrong for key %s. Can only support one dictionary for dict change." % self.dict_key)
+            fn=inspect.getframeinfo(inspect.currentframe()).function
+            raise PSChangeTypeException(
+                "%s: Something went wrong for key %s. Can only support one dictionary for dict change." % (fn,self.dict_key))
         # extract changed objects out of the plist element
         xmlfrag = ET.tostring(children[0])
         return xmlfrag
@@ -146,7 +154,7 @@ class PSChangeTypeArray(PSChangeTypeDict):
     def __init__(self,domain,key,value):
         super(PSChangeTypeArray,self).__init__(domain,key)
         if not isinstance(value,list):
-            raise Exception("PSChangeTypeArray requires a list value type.")
+            raise PSChangeTypeException("PSChangeTypeArray requires a list value type.")
         self.type=None
         self.value="\'%s\'" % self.to_xmlfrag(value)
 
@@ -188,11 +196,11 @@ class PSChangeTypeArrayAdd(PSChangeTypeArray):
 
 class PSChangeTypeData(PSChangeTypeString):
     def __init__(self,domain,key,value):
-        raise Exception("%s not implemented" % self.__class__.__name__)
+        raise PSChangeTypeException("%s not implemented" % self.__class__.__name__)
 
 class PSChangeTypeDate(PSChangeTypeString):
     def __init__(self,domain,key,value):
-        raise Exception("%s not implemented" % self.__class__.__name__)
+        raise PSChangeTypeException("%s not implemented" % self.__class__.__name__)
 
 
 class PrefSniff(object):
@@ -201,7 +209,8 @@ class PrefSniff(object):
                     str: PSChangeTypeString,
                     bool: PSChangeTypeBool,
                     dict: PSChangeTypeDict,
-                    list: PSChangeTypeArray}
+                    list: PSChangeTypeArray,
+                    plistlib.Data: PSChangeTypeData}
 
     def __init__(self, plistpath):
         self.plist_dir = os.path.dirname(plistpath)
@@ -218,6 +227,7 @@ class PrefSniff(object):
         self._wait_for_prefchange()
         self.execute(plist_to_xml, stdout=tempfile2[0])
         pref2 = plistlib.readPlist(tempfile2[1])
+        
         added, removed, modified, same = self._dict_compare(pref1, pref2)
         self.removed = {}
         self.added = {}
@@ -301,17 +311,17 @@ class PrefSniff(object):
         observer.stop()
         observer.join()
 
-    def _change_type_lookup(self, obj):
+    def _change_type_lookup(self, cls):
         try:
-            cls = self.CHANGE_TYPES[obj]
+            change_type = self.CHANGE_TYPES[cls]
         except (KeyError, TypeError):
-            cls = self._change_type_slow_search(obj)
+            change_type = self._change_type_slow_search(cls)
 
-        return cls
+        return change_type
 
-    def _change_type_slow_search(self, obj):
-        for cls, change_type in self.CHANGE_TYPES.items():
-            if isinstance(obj, cls):
+    def _change_type_slow_search(self, cls):
+        for base, change_type in self.CHANGE_TYPES.items():
+            if issubclass(cls, base):
                 return change_type
 
         return None
@@ -327,10 +337,11 @@ class PrefSniff(object):
         rewrite_lists={}
         domain = self.pref_domain
         for k, v in self.added.items():
-
-            change_type = self._change_type_lookup(v)
+            pprint(v)
+            change_type = self._change_type_lookup(v.__class__)
             change = change_type(domain, k, v)
             commands.append(str(change))
+
         for k in self.removed:
             change = PSChangeTypeKeyDeleted(domain, k)
             commands.append(str(change))
@@ -363,7 +374,7 @@ class PrefSniff(object):
             else:
                 # for modified keys that aren't dictionaries, we treat them
                 # like adds
-                change_type = self._change_type_lookup(val[1])
+                change_type = self._change_type_lookup(val[1].__class__)
                 change = change_type(domain, key, val[1])
                 commands.append(str(change))
         for key, val in rewrite_dictionaries.items():
@@ -446,7 +457,6 @@ def main(plistpath, monitor_dir_events=False, print_diffs=False):
                 exit(0)
             if print_diffs:
                 print diffs.diff
-            
             for cmd in diffs.commands:
                 print cmd
 
