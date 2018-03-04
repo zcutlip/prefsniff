@@ -52,7 +52,8 @@ class PSniffException(Exception):
 
 class PSChangeTypeException(PSniffException):
     pass
-
+class PSChangeTypeNotImplementedException(PSChangeTypeException):
+    pass
 
 class PSChangeTypeString(object):
 
@@ -196,11 +197,11 @@ class PSChangeTypeArrayAdd(PSChangeTypeArray):
 
 class PSChangeTypeData(PSChangeTypeString):
     def __init__(self,domain,key,value):
-        raise PSChangeTypeException("%s not implemented" % self.__class__.__name__)
+        raise PSChangeTypeNotImplementedException("%s not implemented" % self.__class__.__name__)
 
 class PSChangeTypeDate(PSChangeTypeString):
     def __init__(self,domain,key,value):
-        raise PSChangeTypeException("%s not implemented" % self.__class__.__name__)
+        raise PSChangeTypeNotImplementedException("%s not implemented" % self.__class__.__name__)
 
 
 class PrefSniff(object):
@@ -337,9 +338,12 @@ class PrefSniff(object):
         rewrite_lists={}
         domain = self.pref_domain
         for k, v in self.added.items():
-            pprint(v)
+            #pprint(v)
             change_type = self._change_type_lookup(v.__class__)
-            change = change_type(domain, k, v)
+            try:
+                change = change_type(domain, k, v)
+            except PSChangeTypeNotImplementedException as e:
+                change = ("key: %s, %s" % (k,str(e)) )
             commands.append(str(change))
 
         for k in self.removed:
@@ -375,8 +379,12 @@ class PrefSniff(object):
                 # for modified keys that aren't dictionaries, we treat them
                 # like adds
                 change_type = self._change_type_lookup(val[1].__class__)
-                change = change_type(domain, key, val[1])
+                try:
+                    change = change_type(domain, key, val[1])
+                except PSChangeTypeNotImplementedException as e:
+                    change=("key: %s, %s" % (k,str(e)) )
                 commands.append(str(change))
+
         for key, val in rewrite_dictionaries.items():
             change = PSChangeTypeDict(domain, key, val)
             commands.append(str(change))
