@@ -11,41 +11,20 @@ from watchdog.observers import Observer
 import os.path
 from Queue import Queue
 from Queue import Empty as QueueEmpty
-from pprint import pprint
+
 import xml.etree.ElementTree as ET
 import inspect
-
-"""
-Pulling out <dict> from xml plist:
-import xml.etree.ElementTree as ET
->>> ET.tostring(root)
-'<plist version="1.0">\n<dict>\n\t<key>1</key>\n\t<string>a</string>\n\t<key>2</key>\n\t<string>b</string>\n</dict>\n</plist>'
->>> root.find("dict")
-<Element 'dict' at 0x106295a90>
->>> ET.tostring(root.find("dict"))
-'<dict>\n\t<key>1</key>\n\t<string>a</string>\n\t<key>2</key>\n\t<string>b</string>\n</dict>\n'
-"""
+import argparse
 
 
-"""
-To create the following foo.bar preference under the key "mydict":
-{
-    mydict = {
-        enabled=1;
-    };
-}
-We can do any of the following:
-- Don't specify the type at all, and use an xml represenation of the dictionary
-defaults write foo.bar mydict "<dict><key>enabled</key><string>1</string></dict>"
-- Specify the type as -dict, followed by the key you want to add to mydict:
-defaults write foo.bar mydict -dict mysubdict "<dict><key>somekey</key><string>1</string></dict>"
-defaults write foo.bar mydict -dict enabled "<integer>1</integer>"
+def parse_args(argv):
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--show-diffs",help="Show diff of changed plist files.",action="store_true")
+    parser.add_argument("--watch-dir",help="Watch <dir> for changed preference files.")
+    parser.add_argument("--watch-file",help="Watch <file> for changes to preferences.")
+    args=parser.parse_args(argv)
+    return args
 
-This creates or replaces 'mydict'
-- Specify -dict-add in order to add to create mydict or add to it if it already exists
-defaults write foo.bar mydict -dict-add mysubdict "<dict><key>somekey</key><string>1</string></dict>"
-defaults write foo.bar mydict -dict-add enabled "<integer>1</integer>"
-"""
 
 class PSniffException(Exception):
     pass
@@ -413,7 +392,8 @@ class PrefsWatcher(object):
         observer.start()
         while True:
             try:
-                event_queue.get(True, 0.5)
+                changed=event_queue.get(True, 0.5)
+                print("Detected change: [%s] %s" % (changed[0],changed[1].src_path))
             except QueueEmpty:
                 pass
             except KeyboardInterrupt:
@@ -497,22 +477,30 @@ def test_write_dict(args):
     prefchange = PSChangeTypeDict(domain, key, value)
     print str(prefchange)
 
+def parse_test_args(argv):
+    if "test-dict-add-float" == argv[1]:
+        test_dict_add_float(argv[2:])
+        exit(0)
+
+    if "test-dict-add-dict" == argv[1]:
+        test_dict_add_dict(argv[2:])
+        exit(0)
+
+    if "test-write-dict" == argv[1]:
+        test_write_dict(argv[2:])
+        exit(0)
+
 if __name__ == '__main__':
-    if "test-dict-add-float" == sys.argv[1]:
-        test_dict_add_float(sys.argv[2:])
-        exit(0)
+    parse_test_args(sys.argv)
 
-    if "test-dict-add-dict" == sys.argv[1]:
-        test_dict_add_dict(sys.argv[2:])
-        exit(0)
-
-    if "test-write-dict" == sys.argv[1]:
-        test_write_dict(sys.argv[2:])
-        exit(0)
-
-    plistpath = sys.argv[1]
-    monitor_dir_events = False
-    if(os.path.isdir(plistpath)):
-        print("Watching events for directory: %s" % plistpath)
+    args=parse_args(sys.argv[1:])
+    monitor_dir_events=False
+    show_diffs=False
+    plistpath = args.watch_file
+    if args.watch_dir:
+        plistpath=args.watch_dir
         monitor_dir_events = True
-    main(plistpath, monitor_dir_events)
+    if args.show_diffs:
+        show_diffs=True
+
+    main(plistpath, monitor_dir_events,print_diffs=show_diffs)
