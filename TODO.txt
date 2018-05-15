@@ -1,0 +1,7 @@
+* Make prefsniff autodetect if its watching a directory or file, and do the write thing.
+    - no need for --watch-dir or --watch-file options
+
+* Make prefsniff detect if it's monitoring a root-owned plist and adjust the generated command accordingly.
+    - evidently it's only possible to modify one of these by using root specifying the literal file as the domain:
+    - sudo defaults write /Library/Preferences/com.apple.root-owned.plist 'somekey' -bool True
+
