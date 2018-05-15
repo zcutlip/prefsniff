@@ -1,0 +1,73 @@
+Pulling out <dict> from xml plist:
+import xml.etree.ElementTree as ET
+>>> ET.tostring(root)
+'<plist version="1.0">\n<dict>\n\t<key>1</key>\n\t<string>a</string>\n\t<key>2</key>\n\t<string>b</string>\n</dict>\n</plist>'
+>>> root.find("dict")
+<Element 'dict' at 0x106295a90>
+>>> ET.tostring(root.find("dict"))
+'<dict>\n\t<key>1</key>\n\t<string>a</string>\n\t<key>2</key>\n\t<string>b</string>\n</dict>\n'
+
+******************************************************************************************
+
+To create the following foo.bar preference under the key "mydict":
+{
+    mydict = {
+        enabled=1;
+    };
+}
+We can do any of the following:
+- Don't specify the type at all, and use an xml represenation of the dictionary
+defaults write foo.bar mydict "<dict><key>enabled</key><string>1</string></dict>"
+- Specify the type as -dict, followed by the key you want to add to mydict:
+defaults write foo.bar mydict -dict mysubdict "<dict><key>somekey</key><string>1</string></dict>"
+defaults write foo.bar mydict -dict enabled "<integer>1</integer>"
+
+This creates or replaces 'mydict'
+- Specify -dict-add in order to add to create mydict or add to it if it already exists
+defaults write foo.bar mydict -dict-add mysubdict "<dict><key>somekey</key><string>1</string></dict>"
+defaults write foo.bar mydict -dict-add enabled "<integer>1</integer>"
+
+******************************************************************************************
+
+from: http://krypted.com/mac-os-x/defaults-symbolichotkeys/
+
+. Now, let’s look at setting that symbolichotkeys property list to set the Front Row (Dictionary 73 within Dictionary AppleSymbolicHotKeys to disable, by changing the enabled key to 0, and then leaving the value dictionary as is by copying it back in with the same values (if you care: delimited from the enabled key with a ; and defined as a a dictionary based on the content between the {} with an array inside of it, defined using parenthesis to start and stop the array, followed with another semicolon to delimit the end of that key followed by the type keypair followed by yet another semicolon to end each open key).
+
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 73 “{enabled = 0; value = { parameters = (65535, 53, 1048576); type = ‘standard’; }; }”
+
+To then re-enable:
+
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 73 "{enabled = 1; value = { parameters = (65535, 53, 1048576); type = 'standard'; }; }"
+
+You could also map different keystrokes by sending different numerical values (some are shown above) into the parameters array.
+
+
+******************************************************************************************
+Writing to something root owned like PowerManagement prefs in /Library/Preferences/
+- Evidently you can't simply run defaults as admin or with sudo to make it stick.
+- You need to provide the explict path to the literal plist file as the domain (not just com.apple.PowerManagement)
+- sudo defaults write /Library/Preferences/com.apple.root-owned.plist 'somekey' -bool True
+
+
+******************************************************************************************
+Modifying trackpad settings
+The trackpad prefpane changes settings for external bluetooth trackpads as well as a MacBook's built-in trackpads. In addition there are a couple of NSGlobalDomain preferences that get set.
+
+All of the following appear necessary (for example to enable tap-to-click):
+# Internal trackpad 
+- defaults write com.apple.AppleMultitouchTrackpad Clicking -bool True
+# Bluetooth trackpad
+- defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool True
+# Tap-to-click seems to work, but the prefpane UI doesn't update without this
+# this changes ~/Library/Preferences/ByHost/.GlobalPreferences.SOME-LONG-GUID.plist
+- defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+# I didn't need this, but the interenet says it's important
+# This changes ~/Library/Preferences/.GlobalPreferences.plist
+- defaults write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
+  
+
+
+******************************************************************************************
+EXAMPLES
+http://osxdaily.com/2012/10/09/best-defaults-write-commands-mac-os-x/
+https://github.com/pawelgrzybek/dotfiles/blob/master/setup-macos.sh
