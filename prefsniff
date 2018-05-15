@@ -46,7 +46,7 @@ class PSChangeTypeString(object):
 
     def __str__(self):
         # defaults action domain key
-        fmt = "defaults %s %s %s"
+        fmt = "defaults %s '%s' '%s'"
         cmd = (fmt % (self.action, self.domain, self.key))
         # some commands work without a type and are easier that way
         if not self.type == None:
@@ -149,7 +149,7 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
 
     def __generate_value_string(self, subkey, value):
         xmlfrag = self.to_xmlfrag(value)
-        valuestring = "%s \'%s\'" % (subkey, xmlfrag)
+        valuestring = "\'%s\' \'%s\'" % (subkey, xmlfrag)
         return valuestring
 
 
