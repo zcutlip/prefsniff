@@ -1,27 +1,27 @@
 #!/usr/bin/env python
 
-import sys
-import subprocess
-import tempfile
+import argparse
 import difflib
-import plistlib
+import inspect
 import os
+import os.path
+import plistlib
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+from Queue import Empty as QueueEmpty
+from Queue import Queue
+
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-import os.path
-from Queue import Queue
-from Queue import Empty as QueueEmpty
 
-import xml.etree.ElementTree as ET
-import inspect
-import argparse
 
 
 def parse_args(argv):
     parser=argparse.ArgumentParser()
+    parser.add_argument("watchpath",help="Directory or plist file to watch for changes.")
     parser.add_argument("--show-diffs",help="Show diff of changed plist files.",action="store_true")
-    parser.add_argument("--watch-dir",help="Watch <dir> for changed preference files.")
-    parser.add_argument("--watch-file",help="Watch <file> for changes to preferences.")
     args=parser.parse_args(argv)
     return args
 
@@ -491,15 +491,19 @@ def parse_test_args(argv):
         exit(0)
 
 if __name__ == '__main__':
-    parse_test_args(sys.argv)
+    #parse_test_args(sys.argv)
 
     args=parse_args(sys.argv[1:])
     monitor_dir_events=False
     show_diffs=False
-    plistpath = args.watch_file
-    if args.watch_dir:
-        plistpath=args.watch_dir
-        monitor_dir_events = True
+    
+    plistpath=args.watchpath
+    if os.path.isdir(plistpath):
+        monitor_dir_events=True
+    elif not os.path.isfile(plistpath):
+        print("Error: %s is not a directory or file, or does not exist." % plistpath)
+        exit(1)
+
     if args.show_diffs:
         show_diffs=True
 
