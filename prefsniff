@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
 import argparse
+import datetime
 import difflib
 import inspect
 import os
-import os.path
+#import os.path
 import plistlib
 import subprocess
 import sys
@@ -12,6 +13,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 from Queue import Empty as QueueEmpty
 from Queue import Queue
+from pwd import getpwuid
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -37,16 +39,21 @@ class PSChangeTypeNotImplementedException(PSChangeTypeException):
 class PSChangeTypeString(object):
 
 
-    def __init__(self, domain, key, value=None):
+    def __init__(self, domain, byhost, key, value=None):
         self.action = "write"
         self.domain = domain
         self.key = key
         self.type = "-string"
         self.value = value
+        self.byhost=byhost
 
     def __str__(self):
         # defaults action domain key
-        fmt = "defaults %s '%s' '%s'"
+        base_defaults="defaults"
+        if self.byhost:
+            base_defaults="defaults -currentHost"
+        fmt = base_defaults+" %s '%s' '%s'"
+
         cmd = (fmt % (self.action, self.domain, self.key))
         # some commands work without a type and are easier that way
         if not self.type == None:
@@ -58,16 +65,16 @@ class PSChangeTypeString(object):
 
 class PSChangeTypeKeyDeleted(PSChangeTypeString):
 
-    def __init__(self, domain, key):
-        super(PSChangeTypeKeyDeleted, self).__init__(domain, key, value=None)
+    def __init__(self, domain, byhost, key):
+        super(PSChangeTypeKeyDeleted, self).__init__(domain, byhost, key, value=None)
         self.action = "delete"
         self.type = None
 
 
 class PSChangeTypeFloat(PSChangeTypeString):
 
-    def __init__(self, domain, key, value):
-        super(PSChangeTypeFloat, self).__init__(domain, key)
+    def __init__(self, domain,byhost, key, value):
+        super(PSChangeTypeFloat, self).__init__(domain, byhost, key)
         self.type = "-float"
         if not isinstance(value, float):
             raise PSChangeTypeException("Float required for -float prefs change.")
@@ -76,8 +83,8 @@ class PSChangeTypeFloat(PSChangeTypeString):
 
 class PSChangeTypeInt(PSChangeTypeString):
 
-    def __init__(self, domain, key, value):
-        super(PSChangeTypeInt, self).__init__(domain, key)
+    def __init__(self, domain,byhost, key, value):
+        super(PSChangeTypeInt, self).__init__(domain, byhost, key)
         self.type = "-int"
         if not isinstance(value, int):
             raise PSChangeTypeException("Integer required for -int prefs change.")
@@ -86,8 +93,8 @@ class PSChangeTypeInt(PSChangeTypeString):
 
 class PSChangeTypeBool(PSChangeTypeString):
 
-    def __init__(self, domain, key, value):
-        super(PSChangeTypeBool, self).__init__(domain, key)
+    def __init__(self, domain, byhost, key, value):
+        super(PSChangeTypeBool, self).__init__(domain, byhost, key)
         self.type = "-bool"
         if not isinstance(value, bool):
             raise PSChangeTypeException("Boolean required for -bool prefs change.")
@@ -96,8 +103,8 @@ class PSChangeTypeBool(PSChangeTypeString):
 
 class PSChangeTypeDict(PSChangeTypeString):
 
-    def __init__(self, domain, key, value={}):
-        super(PSChangeTypeDict, self).__init__(domain, key)
+    def __init__(self, domain, byhost, key, value={}):
+        super(PSChangeTypeDict, self).__init__(domain, byhost, key)
         # We have to omit the -dict type
         # And just let defaults interpet the xml dict string
         self.type = None
@@ -131,8 +138,8 @@ class PSChangeTypeDict(PSChangeTypeString):
         return xmlfrag
 
 class PSChangeTypeArray(PSChangeTypeDict):
-    def __init__(self,domain,key,value):
-        super(PSChangeTypeArray,self).__init__(domain,key)
+    def __init__(self, domain, byhost, key, value):
+        super(PSChangeTypeArray,self).__init__(domain, byhost, key)
         if not isinstance(value,list):
             raise PSChangeTypeException("PSChangeTypeArray requires a list value type.")
         self.type=None
@@ -141,8 +148,8 @@ class PSChangeTypeArray(PSChangeTypeDict):
 
 class PSChangeTypeDictAdd(PSChangeTypeDict):
 
-    def __init__(self, domain, key, subkey, value):
-        super(PSChangeTypeDictAdd, self).__init__(domain, key)
+    def __init__(self, domain, byhost, key, subkey, value):
+        super(PSChangeTypeDictAdd, self).__init__(domain, byhost, key)
         self.type = "-dict-add"
         self.subkey = subkey
         self.value = self.__generate_value_string(subkey, value)
@@ -162,8 +169,8 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
     #     return " %s '%s'" % (self.dict_key, xmlfrag)
 
 class PSChangeTypeArrayAdd(PSChangeTypeArray):
-    def __init__(self,domain,key,value):
-        super(PSChangeTypeArrayAdd,self).__init__(domain,key,value)
+    def __init__(self, domain, key, byhost, value):
+        super(PSChangeTypeArrayAdd,self).__init__(domain, byhost, key, value)
         self.type="-array-add"
         self.value=self.__generate_value_string(value)
 
@@ -175,11 +182,11 @@ class PSChangeTypeArrayAdd(PSChangeTypeArray):
         return valuestring
 
 class PSChangeTypeData(PSChangeTypeString):
-    def __init__(self,domain,key,value):
+    def __init__(self,domain, byhost, key,value):
         raise PSChangeTypeNotImplementedException("%s not implemented" % self.__class__.__name__)
 
 class PSChangeTypeDate(PSChangeTypeString):
-    def __init__(self,domain,key,value):
+    def __init__(self, domain, byhost, key,value):
         raise PSChangeTypeNotImplementedException("%s not implemented" % self.__class__.__name__)
 
 
@@ -190,12 +197,66 @@ class PrefSniff(object):
                     bool: PSChangeTypeBool,
                     dict: PSChangeTypeDict,
                     list: PSChangeTypeArray,
-                    plistlib.Data: PSChangeTypeData}
+                    plistlib.Data: PSChangeTypeData,
+                    datetime.datetime: PSChangeTypeDate}
+    
+    @classmethod
+    def is_nsglobaldomain(cls,plistpath):
+        nsglobaldomain=False
+        base=os.path.basename(plistpath)
+        if base.startswith(".GlobalPreferences"):
+            nsglobaldomain=True
+
+        return nsglobaldomain
+
+
+    @classmethod
+    def is_byhost(cls,plistpath):
+        byhost=False
+        dirname=os.path.dirname(plistpath)
+        immediate_parent=os.path.basename(dirname)
+        if "ByHost" == immediate_parent:
+            byhost=True
+
+        return byhost
+
+    @classmethod
+    def is_root_owned(cls,plistpath):
+         return getpwuid(os.stat(plistpath).st_uid).pw_name=='root'
+
+    @classmethod
+    def getdomain(cls,plistpath,byhost=False):
+        domain=None
+        globaldomain=cls.is_nsglobaldomain(plistpath)
+        root_owned=cls.is_root_owned(plistpath)
+
+        #if root owned (like in /Library/Preferences), need to specify fully qualified
+        # literal filename rather than a namespace
+        if root_owned:
+            domain=plistpath
+        elif globaldomain:
+            domain="NSGlobalDomain"
+        elif byhost:
+            #e.g.,
+            # '~/Library/Preferences/ByHost/com.apple.windowserver.000E4DFD-62C8-5DC5-A2A4-42AFE04AAB87.plist
+            #get just the filename
+            base=os.path.basename(plistpath)
+            #strip off .plist
+            base=os.path.splitext(base)[0]
+            #strip off UUID, leaving e.g., com.apple.windowserver
+            domain=os.path.splitext(base)[0]
+        else:
+            base=os.path.basename(plistpath)
+            domain=os.path.splitext(base)[0]
+
+        return domain
 
     def __init__(self, plistpath):
         self.plist_dir = os.path.dirname(plistpath)
         self.plist_base = os.path.basename(plistpath)
-        self.pref_domain = os.path.splitext(self.plist_base)[0]
+        self.byhost=self.is_byhost(plistpath)
+        self.pref_domain = self.getdomain(plistpath,byhost=self.byhost)
+        
 
         self.plistpath = plistpath
         plist_to_xml = ["plutil", "-convert",
@@ -319,30 +380,31 @@ class PrefSniff(object):
         for k, v in self.added.items():
             #pprint(v)
             change_type = self._change_type_lookup(v.__class__)
+            if not change_type:
+                print v.__class__
             try:
-                change = change_type(domain, k, v)
+                change = change_type(domain, self.byhost, k, v)
             except PSChangeTypeNotImplementedException as e:
                 change = ("key: %s, %s" % (k,str(e)) )
             commands.append(str(change))
 
         for k in self.removed:
-            change = PSChangeTypeKeyDeleted(domain, k)
+            change = PSChangeTypeKeyDeleted(domain, self.byhost, k)
             commands.append(str(change))
         for key, val in self.modified.items():
             if isinstance(val[1], dict):
-                added, removed, modified, same = self._dict_compare(val[
-                                                                    0], val[1])
+                added, removed, modified, same = self._dict_compare(val[0], val[1])
                 if len(removed):
                     # There is no -dict-delete so we have to
                     # rewrite this sub-dictionary
                     rewrite_dictionaries[key] = val[1]
                     continue
                 for subkey, subval in added.items():
-                    change = PSChangeTypeDictAdd(domain, key, subkey, subval)
+                    change = PSChangeTypeDictAdd(domain, self.byhost, key, subkey, subval)
                     commands.append(str(change))
                 for subkey, subval_tuple in modified.items():
                     change = PSChangeTypeDictAdd(
-                        domain, key, subkey, subval_tuple[1])
+                        domain, self.byhost, key, subkey, subval_tuple[1])
                     commands.append(str(change))
             elif isinstance(val[1],list):
                 list_diffs=self._list_compare(val[0],val[1])
@@ -359,17 +421,17 @@ class PrefSniff(object):
                 # like adds
                 change_type = self._change_type_lookup(val[1].__class__)
                 try:
-                    change = change_type(domain, key, val[1])
+                    change = change_type(domain, self.byhost, key, val[1])
                 except PSChangeTypeNotImplementedException as e:
                     change=("key: %s, %s" % (k,str(e)) )
                 commands.append(str(change))
 
         for key, val in rewrite_dictionaries.items():
-            change = PSChangeTypeDict(domain, key, val)
+            change = PSChangeTypeDict(domain, self.byhost, key, val)
             commands.append(str(change))
 
         for key, val in rewrite_lists.items():
-            change = PSChangeTypeArray(domain,key,val)
+            change = PSChangeTypeArray(domain, self.byhost, key, val)
             commands.append(str(change))
 
         return commands
