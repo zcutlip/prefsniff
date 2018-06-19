@@ -18,7 +18,7 @@ from pwd import getpwuid
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-
+STARS="*****************************"
 
 def parse_args(argv):
     parser=argparse.ArgumentParser()
@@ -507,8 +507,12 @@ def main(plistpath, monitor_dir_events=False, print_diffs=False):
                 exit(0)
             if print_diffs:
                 print diffs.diff
+            print STARS
+            print ""
             for cmd in diffs.commands:
                 print cmd
+            print ""
+            print STARS
 
 
 def test_dict_add(domain, key, subkey, value):
