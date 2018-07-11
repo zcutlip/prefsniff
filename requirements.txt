@@ -1,1 +1,2 @@
+future==0.16.0
 watchdog==0.8.3
