@@ -323,8 +323,8 @@ class PrefSniff(object):
 
 
     def _unified_diff(self, fromfile, tofile):
-        fromlines = open(fromfile, "rb").readlines()
-        tolines = open(tofile, "rb").readlines()
+        fromlines = open(fromfile, "r").readlines()
+        tolines = open(tofile, "r").readlines()
         return difflib.unified_diff(fromlines, tolines, fromfile, tofile)
 
     def _wait_for_prefchange(self):
