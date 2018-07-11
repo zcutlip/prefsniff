@@ -5,8 +5,8 @@ import datetime
 import difflib
 import inspect
 import os
-#import os.path
 import plistlib
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -69,18 +69,24 @@ class PSChangeTypeString(object):
 
     def __str__(self):
         # defaults action domain key
-        base_defaults="defaults"
+        command=['defaults']
         if self.byhost:
-            base_defaults="defaults -currentHost"
-        fmt = base_defaults+" %s '%s' '%s'"
+            command.append('-currentHost')
 
-        cmd = (fmt % (self.action, self.domain, self.key))
+        command.append(shlex.quote(self.action))
+        command.append(shlex.quote(self.domain))
+        command.append(shlex.quote(self.key))
+
         # some commands work without a type and are easier that way
-        if not self.type == None:
-            cmd += " %s" % self.type
-        if not self.value == None:
-            cmd += " %s" % self.value
-        return cmd
+        if self.type is not None:
+            command.append(shlex.quote(self.type))
+        if self.value is not None:
+            if isinstance(self.value, (list, tuple)):
+                command.extend(shlex.quote(x) for x in self.value)
+            else:
+                print(repr(self.value))
+                command.append(shlex.quote(self.value))
+        return ' '.join(command)
 
 
 class PSChangeTypeKeyDeleted(PSChangeTypeString):
@@ -132,7 +138,7 @@ class PSChangeTypeDict(PSChangeTypeString):
         # unless we've been subclassed.
         self.value = value
         if isinstance(value, dict):
-            self.value = "\'%s\'" % self.to_xmlfrag(value)
+            self.value = self.to_xmlfrag(value)
 
 
     def to_xmlfrag(self, value):
@@ -164,7 +170,7 @@ class PSChangeTypeArray(PSChangeTypeDict):
         if not isinstance(value,list):
             raise PSChangeTypeException("PSChangeTypeArray requires a list value type.")
         self.type=None
-        self.value="\'%s\'" % self.to_xmlfrag(value)
+        self.value=self.to_xmlfrag(value)
 
 
 class PSChangeTypeDictAdd(PSChangeTypeDict):
@@ -177,8 +183,7 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
 
     def __generate_value_string(self, subkey, value):
         xmlfrag = self.to_xmlfrag(value)
-        valuestring = "\'%s\' \'%s\'" % (subkey, xmlfrag)
-        return valuestring
+        return (subkey, xmlfrag)
 
 
     # def __str__(self):
@@ -196,11 +201,10 @@ class PSChangeTypeArrayAdd(PSChangeTypeArray):
         self.value=self.__generate_value_string(value)
 
     def __generate_value_string(self,value):
-        valuestring=""
+        values = []
         for v in value:
-            xmlfrag=self.to_xmlfrag(v)
-            valuestring+="\'%s\' " % xmlfrag
-        return valuestring
+            values.append(self.to_xmlfrag(v))
+        return values
 
 class PSChangeTypeData(PSChangeTypeString):
     def __init__(self,domain, byhost, key,value):
