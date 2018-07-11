@@ -28,6 +28,26 @@ def parse_args(argv):
     return args
 
 
+def deserialize_plist(data):
+    if sys.version_info >= (3, 4):
+        return plistlib.loads(data)
+    else:
+        if data.startswith(b'bplist'):
+            with tempfile.NamedTemporaryFile() as f:
+                f.write(data)
+                f.flush()
+                data = subprocess.check_output(
+                    ["plutil", "-convert", "xml1", "-o", "-", f.name])
+        return plistlib.readPlistFromString(data)
+
+
+def serialize_plist(data):
+    if sys.version_info >= (3, 4):
+        return plistlib.dumps(data, fmt=plistlib.FMT_XML).decode('utf-8')
+    else:
+        return plistlib.writePlistToString(data)
+
+
 class PSniffException(Exception):
     pass
 
@@ -118,7 +138,8 @@ class PSChangeTypeDict(PSChangeTypeString):
     def to_xmlfrag(self, value):
 
         # create plist-serialized form of changed objects
-        plist_str = plistlib.writePlistToString(value)
+        plist_str = serialize_plist(value)
+
         # remove newlines and tabs from plist
         plist_str = "".join([line.strip() for line in plist_str.splitlines()])
         # parse the plist xml doc, so we can pull out the important parts.
@@ -134,7 +155,7 @@ class PSChangeTypeDict(PSChangeTypeString):
             raise PSChangeTypeException(
                 "%s: Something went wrong for key %s. Can only support one dictionary for dict change." % (fn,self.dict_key))
         # extract changed objects out of the plist element
-        xmlfrag = ET.tostring(children[0])
+        xmlfrag = ET.tostring(children[0], encoding="unicode")
         return xmlfrag
 
 class PSChangeTypeArray(PSChangeTypeDict):
@@ -259,16 +280,17 @@ class PrefSniff(object):
         
 
         self.plistpath = plistpath
-        plist_to_xml = ["plutil", "-convert",
-                        "xml1", "-o", "-", "%s" % plistpath]
-        tempfile1 = tempfile.mkstemp()
-        tempfile2 = tempfile.mkstemp()
-        self.execute(plist_to_xml, stdout=tempfile1[0])
-        pref1 = plistlib.readPlist(tempfile1[1])
+
+        # Read the preference file before it changed
+        with open(plistpath, 'rb') as f:
+            pref1 = deserialize_plist(f.read())
+
         self._wait_for_prefchange()
-        self.execute(plist_to_xml, stdout=tempfile2[0])
-        pref2 = plistlib.readPlist(tempfile2[1])
-        
+
+        # Read the preference file after it changed
+        with open(plistpath, 'rb') as f:
+            pref2 = deserialize_plist(f.read())
+
         added, removed, modified, same = self._dict_compare(pref1, pref2)
         self.removed = {}
         self.added = {}
@@ -285,9 +307,7 @@ class PrefSniff(object):
             self.modified = modified
 
         self.commands = self._generate_commands()
-        self.diff = ""
-        for line in self._unified_diff(tempfile1[1], tempfile2[1]):
-            self.diff += line
+        self.diff = self._unified_diff(pref1, pref2, plistpath)
 
     def _dict_compare(self, d1, d2):
         d1_keys = set(d1.keys())
@@ -322,10 +342,11 @@ class PrefSniff(object):
 
 
 
-    def _unified_diff(self, fromfile, tofile):
-        fromlines = open(fromfile, "r").readlines()
-        tolines = open(tofile, "r").readlines()
-        return difflib.unified_diff(fromlines, tolines, fromfile, tofile)
+    def _unified_diff(self, frompref, topref, path):
+        # Convert both preferences to XML format
+        fromxml, toxml = serialize_plist(frompref), serialize_plist(topref)
+        fromlines, tolines = fromxml.splitlines(), toxml.splitlines()
+        return difflib.unified_diff(fromlines, tolines, path, path)
 
     def _wait_for_prefchange(self):
         event_queue = Queue()
@@ -506,7 +527,7 @@ def main(plistpath, monitor_dir_events=False, print_diffs=False):
                 print("Exiting.")
                 exit(0)
             if print_diffs:
-                print(diffs.diff)
+                print('\n'.join(diffs.diff))
             print(STARS)
             print("")
             for cmd in diffs.commands:
