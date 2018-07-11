@@ -11,8 +11,8 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
-from Queue import Empty as QueueEmpty
-from Queue import Queue
+from queue import Empty as QueueEmpty
+from queue import Queue
 from pwd import getpwuid
 
 from watchdog.events import FileSystemEventHandler
@@ -381,7 +381,7 @@ class PrefSniff(object):
             #pprint(v)
             change_type = self._change_type_lookup(v.__class__)
             if not change_type:
-                print v.__class__
+                print(v.__class__)
             try:
                 change = change_type(domain, self.byhost, k, v)
             except PSChangeTypeNotImplementedException as e:
@@ -506,18 +506,18 @@ def main(plistpath, monitor_dir_events=False, print_diffs=False):
                 print("Exiting.")
                 exit(0)
             if print_diffs:
-                print diffs.diff
-            print STARS
-            print ""
+                print(diffs.diff)
+            print(STARS)
+            print("")
             for cmd in diffs.commands:
-                print cmd
-            print ""
-            print STARS
+                print(cmd)
+            print("")
+            print(STARS)
 
 
 def test_dict_add(domain, key, subkey, value):
     prefchange = PSChangeTypeDictAdd(domain, key, subkey, value)
-    print str(prefchange)
+    print(str(prefchange))
 
 
 def test_dict_add_dict(args):
@@ -541,7 +541,7 @@ def test_write_dict(args):
     key = args[1]
     value = {"dictkey1": 2.0, "dictkey2": {"subkey": '7'}}
     prefchange = PSChangeTypeDict(domain, key, value)
-    print str(prefchange)
+    print(str(prefchange))
 
 def parse_test_args(argv):
     if "test-dict-add-float" == argv[1]:
