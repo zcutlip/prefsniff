@@ -6,25 +6,25 @@ import difflib
 import inspect
 import os
 import plistlib
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree as ET
+from pwd import getpwuid
+
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 try:
     from shlex import quote as cmd_quote
 except ImportError:
     # https://stackoverflow.com/questions/26790916/python-3-backward-compatability-shlex-quote-vs-pipes-quote#26791164
     from pipes import quote as cmd_quote
-import subprocess
-import sys
-import tempfile
-import xml.etree.ElementTree as ET
 try:
     from queue import Empty as QueueEmpty
     from queue import Queue
 except ImportError:
     from Queue import Empty as QueueEmpty
     from Queue import Queue
-from pwd import getpwuid
-
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
 
 STARS="*****************************"
 
