@@ -6,13 +6,21 @@ import difflib
 import inspect
 import os
 import plistlib
-import shlex
+try:
+    from shlex import quote as cmd_quote
+except ImportError:
+    # https://stackoverflow.com/questions/26790916/python-3-backward-compatability-shlex-quote-vs-pipes-quote#26791164
+    from pipes import quote as cmd_quote
 import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
-from queue import Empty as QueueEmpty
-from queue import Queue
+try:
+    from queue import Empty as QueueEmpty
+    from queue import Queue
+except ImportError:
+    from Queue import Empty as QueueEmpty
+    from Queue import Queue
 from pwd import getpwuid
 
 from watchdog.events import FileSystemEventHandler
@@ -73,19 +81,19 @@ class PSChangeTypeString(object):
         if self.byhost:
             command.append('-currentHost')
 
-        command.append(shlex.quote(self.action))
-        command.append(shlex.quote(self.domain))
-        command.append(shlex.quote(self.key))
+        command.append(cmd_quote(self.action))
+        command.append(cmd_quote(self.domain))
+        command.append(cmd_quote(self.key))
 
         # some commands work without a type and are easier that way
         if self.type is not None:
-            command.append(shlex.quote(self.type))
+            command.append(cmd_quote(self.type))
         if self.value is not None:
             if isinstance(self.value, (list, tuple)):
-                command.extend(shlex.quote(x) for x in self.value)
+                command.extend(cmd_quote(x) for x in self.value)
             else:
                 print(repr(self.value))
-                command.append(shlex.quote(self.value))
+                command.append(cmd_quote(self.value))
         return ' '.join(command)
 
 
@@ -161,7 +169,9 @@ class PSChangeTypeDict(PSChangeTypeString):
             raise PSChangeTypeException(
                 "%s: Something went wrong for key %s. Can only support one dictionary for dict change." % (fn,self.dict_key))
         # extract changed objects out of the plist element
-        xmlfrag = ET.tostring(children[0], encoding="unicode")
+        # python 2 & 3 compat
+        #https://stackoverflow.com/questions/15304229/convert-python-elementtree-to-string#15304351
+        xmlfrag = ET.tostring(children[0]).decode()
         return xmlfrag
 
 class PSChangeTypeArray(PSChangeTypeDict):
