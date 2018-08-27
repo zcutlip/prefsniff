@@ -1,6 +1,8 @@
 Prefsniff
 =========
 
+*Author:* Zachary Cutlip, uid000 at gmail
+
 `prefsniff` is a utility to watch macOS plist files for changes, and then autogenerate the `defaults` command to apply those changes. Its intended use is to have `prefsniff` watch a plist file while setting a system or application preference. The resulting defaults command can then be added to a shell script or incorporated into a configuration management system such as Ansible.
 
 Installing
