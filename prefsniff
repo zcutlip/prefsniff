@@ -92,7 +92,7 @@ class PSChangeTypeString(object):
             if isinstance(self.value, (list, tuple)):
                 command.extend(cmd_quote(x) for x in self.value)
             else:
-                print(repr(self.value))
+                #print(repr(self.value))
                 command.append(cmd_quote(self.value))
         return ' '.join(command)
 
