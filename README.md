@@ -48,7 +48,7 @@ TODO
 - Make an actual installer
 - Clean up output so that it can be redirected to a shell script or similar
 - Add additional output options (such as the name of a shell script to create)
-- API
-    - Make prefsniff into a python module that exports an API
+- Split utility & API
+    - Make prefsniff into a python module that exports API
     - Make a separate `prefsniff` command-line utility that uses the API
 
