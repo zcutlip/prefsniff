@@ -44,6 +44,7 @@ File mode example:
 TODO
 ----
 
+- Test for python 3 compat
 - Implement `data` and `date` plist types
 - Make an actual installer
 - Clean up output so that it can be redirected to a shell script or similar

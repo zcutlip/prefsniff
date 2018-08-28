@@ -1,7 +1,8 @@
-* Make prefsniff autodetect if its watching a directory or file, and do the write thing.
-    - no need for --watch-dir or --watch-file options
-
-* Make prefsniff detect if it's monitoring a root-owned plist and adjust the generated command accordingly.
-    - evidently it's only possible to modify one of these by using root specifying the literal file as the domain:
-    - sudo defaults write /Library/Preferences/com.apple.root-owned.plist 'somekey' -bool True
-
+- Test for python 3 compat
+- Implement `data` and `date` plist types
+- Make an actual installer
+- Clean up output so that it can be redirected to a shell script or similar
+- Add additional output options (such as the name of a shell script to create)
+- Split utility & API
+    - Make prefsniff into a python module that exports API
+    - Make a separate `prefsniff` command-line utility that uses the API
