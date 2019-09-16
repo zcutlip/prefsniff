@@ -29,18 +29,21 @@ except ImportError:
 
 from .version import PrefsniffAbout
 
-STARS="*****************************"
+STARS = "*****************************"
+
 
 def parse_args(argv):
-    parser=argparse.ArgumentParser()
-    parser.add_argument("watchpath",help="Directory or plist file to watch for changes.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "watchpath", help="Directory or plist file to watch for changes.")
     parser.add_argument(
         "--version",
         help="Show version and exit.",
         action='version',
         version=str(PrefsniffAbout()))
-    parser.add_argument("--show-diffs",help="Show diff of changed plist files.",action="store_true")
-    args=parser.parse_args(argv)
+    parser.add_argument(
+        "--show-diffs", help="Show diff of changed plist files.", action="store_true")
+    args = parser.parse_args(argv)
     return args
 
 
@@ -67,13 +70,16 @@ def serialize_plist(data):
 class PSniffException(Exception):
     pass
 
+
 class PSChangeTypeException(PSniffException):
     pass
+
+
 class PSChangeTypeNotImplementedException(PSChangeTypeException):
     pass
 
-class PSChangeTypeString(object):
 
+class PSChangeTypeString(object):
 
     def __init__(self, domain, byhost, key, value=None):
         self.action = "write"
@@ -81,11 +87,11 @@ class PSChangeTypeString(object):
         self.key = key
         self.type = "-string"
         self.value = value
-        self.byhost=byhost
+        self.byhost = byhost
 
     def __str__(self):
         # defaults action domain key
-        command=['defaults']
+        command = ['defaults']
         if self.byhost:
             command.append('-currentHost')
 
@@ -100,7 +106,7 @@ class PSChangeTypeString(object):
             if isinstance(self.value, (list, tuple)):
                 command.extend(cmd_quote(x) for x in self.value)
             else:
-                #print(repr(self.value))
+                # print(repr(self.value))
                 command.append(cmd_quote(self.value))
         return ' '.join(command)
 
@@ -108,28 +114,31 @@ class PSChangeTypeString(object):
 class PSChangeTypeKeyDeleted(PSChangeTypeString):
 
     def __init__(self, domain, byhost, key):
-        super(PSChangeTypeKeyDeleted, self).__init__(domain, byhost, key, value=None)
+        super(PSChangeTypeKeyDeleted, self).__init__(
+            domain, byhost, key, value=None)
         self.action = "delete"
         self.type = None
 
 
 class PSChangeTypeFloat(PSChangeTypeString):
 
-    def __init__(self, domain,byhost, key, value):
+    def __init__(self, domain, byhost, key, value):
         super(PSChangeTypeFloat, self).__init__(domain, byhost, key)
         self.type = "-float"
         if not isinstance(value, float):
-            raise PSChangeTypeException("Float required for -float prefs change.")
+            raise PSChangeTypeException(
+                "Float required for -float prefs change.")
         self.value = str(value)
 
 
 class PSChangeTypeInt(PSChangeTypeString):
 
-    def __init__(self, domain,byhost, key, value):
+    def __init__(self, domain, byhost, key, value):
         super(PSChangeTypeInt, self).__init__(domain, byhost, key)
         self.type = "-int"
         if not isinstance(value, int):
-            raise PSChangeTypeException("Integer required for -int prefs change.")
+            raise PSChangeTypeException(
+                "Integer required for -int prefs change.")
         self.value = str(value)
 
 
@@ -139,7 +148,8 @@ class PSChangeTypeBool(PSChangeTypeString):
         super(PSChangeTypeBool, self).__init__(domain, byhost, key)
         self.type = "-bool"
         if not isinstance(value, bool):
-            raise PSChangeTypeException("Boolean required for -bool prefs change.")
+            raise PSChangeTypeException(
+                "Boolean required for -bool prefs change.")
         self.value = str(value)
 
 
@@ -156,7 +166,6 @@ class PSChangeTypeDict(PSChangeTypeString):
         if isinstance(value, dict):
             self.value = self.to_xmlfrag(value)
 
-
     def to_xmlfrag(self, value):
 
         # create plist-serialized form of changed objects
@@ -170,25 +179,28 @@ class PSChangeTypeDict(PSChangeTypeString):
         children = list(tree.getroot())
         # there can only be one element inside <plist>
         if len(children) < 1:
-            fn=inspect.getframeinfo(inspect.currentframe()).function
-            raise PSChangeTypeException("%s: Empty dictionary for key %s" % (fn,str(self.key)))
-        if len(children) > 1:
-            fn=inspect.getframeinfo(inspect.currentframe()).function
+            fn = inspect.getframeinfo(inspect.currentframe()).function
             raise PSChangeTypeException(
-                "%s: Something went wrong for key %s. Can only support one dictionary for dict change." % (fn,self.dict_key))
+                "%s: Empty dictionary for key %s" % (fn, str(self.key)))
+        if len(children) > 1:
+            fn = inspect.getframeinfo(inspect.currentframe()).function
+            raise PSChangeTypeException(
+                "%s: Something went wrong for key %s. Can only support one dictionary for dict change." % (fn, self.dict_key))
         # extract changed objects out of the plist element
         # python 2 & 3 compat
-        #https://stackoverflow.com/questions/15304229/convert-python-elementtree-to-string#15304351
+        # https://stackoverflow.com/questions/15304229/convert-python-elementtree-to-string#15304351
         xmlfrag = ET.tostring(children[0]).decode()
         return xmlfrag
 
+
 class PSChangeTypeArray(PSChangeTypeDict):
     def __init__(self, domain, byhost, key, value):
-        super(PSChangeTypeArray,self).__init__(domain, byhost, key)
-        if not isinstance(value,list):
-            raise PSChangeTypeException("PSChangeTypeArray requires a list value type.")
-        self.type=None
-        self.value=self.to_xmlfrag(value)
+        super(PSChangeTypeArray, self).__init__(domain, byhost, key)
+        if not isinstance(value, list):
+            raise PSChangeTypeException(
+                "PSChangeTypeArray requires a list value type.")
+        self.type = None
+        self.value = self.to_xmlfrag(value)
 
 
 class PSChangeTypeDictAdd(PSChangeTypeDict):
@@ -203,7 +215,6 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
         xmlfrag = self.to_xmlfrag(value)
         return (subkey, xmlfrag)
 
-
     # def __str__(self):
     #     # hopefully generate something like:
     #     #"dict-key 'val-to-add-to-dict'"
@@ -212,25 +223,30 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
     #     xmlfrag = self.xmlfrag
     #     return " %s '%s'" % (self.dict_key, xmlfrag)
 
+
 class PSChangeTypeArrayAdd(PSChangeTypeArray):
     def __init__(self, domain, key, byhost, value):
-        super(PSChangeTypeArrayAdd,self).__init__(domain, byhost, key, value)
-        self.type="-array-add"
-        self.value=self.__generate_value_string(value)
+        super(PSChangeTypeArrayAdd, self).__init__(domain, byhost, key, value)
+        self.type = "-array-add"
+        self.value = self.__generate_value_string(value)
 
-    def __generate_value_string(self,value):
+    def __generate_value_string(self, value):
         values = []
         for v in value:
             values.append(self.to_xmlfrag(v))
         return values
 
+
 class PSChangeTypeData(PSChangeTypeString):
-    def __init__(self,domain, byhost, key,value):
-        raise PSChangeTypeNotImplementedException("%s not implemented" % self.__class__.__name__)
+    def __init__(self, domain, byhost, key, value):
+        raise PSChangeTypeNotImplementedException(
+            "%s not implemented" % self.__class__.__name__)
+
 
 class PSChangeTypeDate(PSChangeTypeString):
-    def __init__(self, domain, byhost, key,value):
-        raise PSChangeTypeNotImplementedException("%s not implemented" % self.__class__.__name__)
+    def __init__(self, domain, byhost, key, value):
+        raise PSChangeTypeNotImplementedException(
+            "%s not implemented" % self.__class__.__name__)
 
 
 class PrefSniff(object):
@@ -242,64 +258,62 @@ class PrefSniff(object):
                     list: PSChangeTypeArray,
                     plistlib.Data: PSChangeTypeData,
                     datetime.datetime: PSChangeTypeDate}
-    
+
     @classmethod
-    def is_nsglobaldomain(cls,plistpath):
-        nsglobaldomain=False
-        base=os.path.basename(plistpath)
+    def is_nsglobaldomain(cls, plistpath):
+        nsglobaldomain = False
+        base = os.path.basename(plistpath)
         if base.startswith(".GlobalPreferences"):
-            nsglobaldomain=True
+            nsglobaldomain = True
 
         return nsglobaldomain
 
-
     @classmethod
-    def is_byhost(cls,plistpath):
-        byhost=False
-        dirname=os.path.dirname(plistpath)
-        immediate_parent=os.path.basename(dirname)
+    def is_byhost(cls, plistpath):
+        byhost = False
+        dirname = os.path.dirname(plistpath)
+        immediate_parent = os.path.basename(dirname)
         if "ByHost" == immediate_parent:
-            byhost=True
+            byhost = True
 
         return byhost
 
     @classmethod
-    def is_root_owned(cls,plistpath):
-         return getpwuid(os.stat(plistpath).st_uid).pw_name=='root'
+    def is_root_owned(cls, plistpath):
+        return getpwuid(os.stat(plistpath).st_uid).pw_name == 'root'
 
     @classmethod
-    def getdomain(cls,plistpath,byhost=False):
-        domain=None
-        globaldomain=cls.is_nsglobaldomain(plistpath)
-        root_owned=cls.is_root_owned(plistpath)
+    def getdomain(cls, plistpath, byhost=False):
+        domain = None
+        globaldomain = cls.is_nsglobaldomain(plistpath)
+        root_owned = cls.is_root_owned(plistpath)
 
-        #if root owned (like in /Library/Preferences), need to specify fully qualified
+        # if root owned (like in /Library/Preferences), need to specify fully qualified
         # literal filename rather than a namespace
         if root_owned:
-            domain=plistpath
+            domain = plistpath
         elif globaldomain:
-            domain="NSGlobalDomain"
+            domain = "NSGlobalDomain"
         elif byhost:
-            #e.g.,
+            # e.g.,
             # '~/Library/Preferences/ByHost/com.apple.windowserver.000E4DFD-62C8-5DC5-A2A4-42AFE04AAB87.plist
-            #get just the filename
-            base=os.path.basename(plistpath)
-            #strip off .plist
-            base=os.path.splitext(base)[0]
-            #strip off UUID, leaving e.g., com.apple.windowserver
-            domain=os.path.splitext(base)[0]
+            # get just the filename
+            base = os.path.basename(plistpath)
+            # strip off .plist
+            base = os.path.splitext(base)[0]
+            # strip off UUID, leaving e.g., com.apple.windowserver
+            domain = os.path.splitext(base)[0]
         else:
-            base=os.path.basename(plistpath)
-            domain=os.path.splitext(base)[0]
+            base = os.path.basename(plistpath)
+            domain = os.path.splitext(base)[0]
 
         return domain
 
     def __init__(self, plistpath):
         self.plist_dir = os.path.dirname(plistpath)
         self.plist_base = os.path.basename(plistpath)
-        self.byhost=self.is_byhost(plistpath)
-        self.pref_domain = self.getdomain(plistpath,byhost=self.byhost)
-        
+        self.byhost = self.is_byhost(plistpath)
+        self.pref_domain = self.getdomain(plistpath, byhost=self.byhost)
 
         self.plistpath = plistpath
 
@@ -320,7 +334,7 @@ class PrefSniff(object):
 
         # At this stage, added and removed would be
         # a key:value added or removed from the top-level
-        #<dict> of the plist
+        # <dict> of the plist
         if len(added):
             self.added = added
         if len(removed):
@@ -340,29 +354,28 @@ class PrefSniff(object):
         removed = d1_keys - d2_keys
         modified = {o: (d1[o], d2[o])
                     for o in intersect_keys if d1[o] != d2[o]}
-        
+
         same = set(o for o in intersect_keys if d1[o] == d2[o])
         return added, removed, modified, same
 
-    def _list_compare(self,list1,list2):
-        list_diffs={"same":False,"append_to_l1":None,"subtract_from_l1":None}
-        if list1==list2:
-            list_diffs["same"]=True
+    def _list_compare(self, list1, list2):
+        list_diffs = {"same": False, "append_to_l1": None,
+                      "subtract_from_l1": None}
+        if list1 == list2:
+            list_diffs["same"] = True
             return list_diffs
         if len(list2) > len(list1):
-            if list1==list2[:len(list1)]:
-                list_diffs["append_to_l1"]=list2[len(list1):]
+            if list1 == list2[:len(list1)]:
+                list_diffs["append_to_l1"] = list2[len(list1):]
 
             return list_diffs
-        elif len(list1)>len(list2):
-            if list2==list1[:len(list2)]:
-                list_diffs["subtract_from_l1"]=list1[len(list2):]
-            
+        elif len(list1) > len(list2):
+            if list2 == list1[:len(list2)]:
+                list_diffs["subtract_from_l1"] = list1[len(list2):]
+
             return list_diffs
 
         return list_diffs
-
-
 
     def _unified_diff(self, frompref, topref, path):
         # Convert both preferences to XML format
@@ -416,19 +429,19 @@ class PrefSniff(object):
         # something was removed.
         rewrite_dictionaries = {}
 
-        #we can only append to existing arrays
-        #if an array changes in any other way, we have to rewrite it 
-        rewrite_lists={}
+        # we can only append to existing arrays
+        # if an array changes in any other way, we have to rewrite it
+        rewrite_lists = {}
         domain = self.pref_domain
         for k, v in self.added.items():
-            #pprint(v)
+            # pprint(v)
             change_type = self._change_type_lookup(v.__class__)
             if not change_type:
                 print(v.__class__)
             try:
                 change = change_type(domain, self.byhost, k, v)
             except PSChangeTypeNotImplementedException as e:
-                change = ("key: %s, %s" % (k,str(e)) )
+                change = ("key: %s, %s" % (k, str(e)))
             commands.append(str(change))
 
         for k in self.removed:
@@ -436,29 +449,31 @@ class PrefSniff(object):
             commands.append(str(change))
         for key, val in self.modified.items():
             if isinstance(val[1], dict):
-                added, removed, modified, same = self._dict_compare(val[0], val[1])
+                added, removed, modified, same = self._dict_compare(
+                    val[0], val[1])
                 if len(removed):
                     # There is no -dict-delete so we have to
                     # rewrite this sub-dictionary
                     rewrite_dictionaries[key] = val[1]
                     continue
                 for subkey, subval in added.items():
-                    change = PSChangeTypeDictAdd(domain, self.byhost, key, subkey, subval)
+                    change = PSChangeTypeDictAdd(
+                        domain, self.byhost, key, subkey, subval)
                     commands.append(str(change))
                 for subkey, subval_tuple in modified.items():
                     change = PSChangeTypeDictAdd(
                         domain, self.byhost, key, subkey, subval_tuple[1])
                     commands.append(str(change))
-            elif isinstance(val[1],list):
-                list_diffs=self._list_compare(val[0],val[1])
+            elif isinstance(val[1], list):
+                list_diffs = self._list_compare(val[0], val[1])
                 if list_diffs["same"]:
                     continue
                 elif list_diffs["append_to_l1"]:
-                    append=list_diffs["append_to_l1"]
-                    change=PSChangeTypeArrayAdd(domain,key,append)
+                    append = list_diffs["append_to_l1"]
+                    change = PSChangeTypeArrayAdd(domain, key, append)
                     commands.append(str(change))
                 else:
-                    rewrite_lists[key]=val[1]
+                    rewrite_lists[key] = val[1]
             else:
                 # for modified keys that aren't dictionaries, we treat them
                 # like adds
@@ -466,7 +481,7 @@ class PrefSniff(object):
                 try:
                     change = change_type(domain, self.byhost, key, val[1])
                 except PSChangeTypeNotImplementedException as e:
-                    change=("key: %s, %s" % (k,str(e)) )
+                    change = ("key: %s, %s" % (k, str(e)))
                 commands.append(str(change))
 
         for key, val in rewrite_dictionaries.items():
@@ -492,7 +507,7 @@ class PrefsWatcher(object):
             if pattern_is_regex:
                 self.regex = re.compile(pattern_string)
             self.negative_match = negative_match
-        
+
         def passes_filter(self, input_string):
             match = False
             passes = False
@@ -512,7 +527,8 @@ class PrefsWatcher(object):
 
     def __init__(self, prefsdir):
         self.prefsdir = prefsdir
-        self.filters = [self._PrefsWatchFilter(r".*\.plist$", pattern_is_regex=True)]
+        self.filters = [self._PrefsWatchFilter(
+            r".*\.plist$", pattern_is_regex=True)]
         self._watch_prefsdir()
 
     def _watch_prefsdir(self):
@@ -521,10 +537,10 @@ class PrefsWatcher(object):
         observer = Observer()
         observer.schedule(event_handler, self.prefsdir, recursive=False)
         observer.start()
-        
+
         while True:
             try:
-                changed=event_queue.get(True, 0.5)
+                changed = event_queue.get(True, 0.5)
                 src_path = changed[1].src_path
                 passes = True
                 for _filter in self.filters:
@@ -533,7 +549,8 @@ class PrefsWatcher(object):
                         break
                 if not passes:
                     continue
-                print("Detected change: [%s] %s" % (changed[0],changed[1].src_path))
+                print("Detected change: [%s] %s" %
+                      (changed[0], changed[1].src_path))
             except QueueEmpty:
                 pass
             except KeyboardInterrupt:
@@ -546,34 +563,31 @@ class PrefChangedEventHandler(FileSystemEventHandler):
 
     def __init__(self, file_base_name, event_queue):
         super(self.__class__, self).__init__()
-        if file_base_name == None:
+        if file_base_name is None:
             file_base_name = ""
         self.file_base_name = file_base_name
         self.event_queue = event_queue
         print("Watching prefs file: %s" % self.file_base_name)
 
     def on_created(self, event):
-        if not self.file_base_name in os.path.basename(event.src_path):
+        if self.file_base_name not in os.path.basename(event.src_path):
             return
         self.event_queue.put(("created", event))
 
     def on_deleted(self, event):
-        if not self.file_base_name in os.path.basename(event.src_path):
+        if self.file_base_name not in os.path.basename(event.src_path):
             return
         self.event_queue.put(("deleted", event))
 
     def on_modified(self, event):
-        if not self.file_base_name in os.path.basename(event.src_path):
+        if self.file_base_name not in os.path.basename(event.src_path):
             return
         self.event_queue.put(("modified", event))
 
     def on_moved(self, event):
-        if not self.file_base_name in os.path.basename(event.src_path):
+        if self.file_base_name not in os.path.basename(event.src_path):
             return
         self.event_queue.put(("moved", event))
-
-
-
 
 
 def test_dict_add(domain, key, subkey, value):
@@ -604,6 +618,7 @@ def test_write_dict(args):
     prefchange = PSChangeTypeDict(domain, key, value)
     print(str(prefchange))
 
+
 def parse_test_args(argv):
     if "test-dict-add-float" == argv[1]:
         test_dict_add_float(argv[2:])
@@ -620,19 +635,20 @@ def parse_test_args(argv):
 
 def main(argv):
     args = parse_args(sys.argv[1:])
-    monitor_dir_events=False
-    show_diffs=False
+    monitor_dir_events = False
+    show_diffs = False
 
-    plistpath=args.watchpath
+    plistpath = args.watchpath
     if os.path.isdir(plistpath):
-        monitor_dir_events=True
+        monitor_dir_events = True
     elif not os.path.isfile(plistpath):
         print("Error: %s is not a directory or file, or does not exist." % plistpath)
         exit(1)
 
     if args.show_diffs:
-        show_diffs=True
-    print("{} version {}".format(PrefsniffAbout.TITLE.upper(), PrefsniffAbout.VERSION))
+        show_diffs = True
+    print("{} version {}".format(
+        PrefsniffAbout.TITLE.upper(), PrefsniffAbout.VERSION))
     if monitor_dir_events:
         PrefsWatcher(plistpath)
     else:
