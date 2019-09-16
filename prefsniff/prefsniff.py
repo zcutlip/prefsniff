@@ -567,7 +567,6 @@ class PrefChangedEventHandler(FileSystemEventHandler):
             file_base_name = ""
         self.file_base_name = file_base_name
         self.event_queue = event_queue
-        print("Watching prefs file: %s" % self.file_base_name)
 
     def on_created(self, event):
         if self.file_base_name not in os.path.basename(event.src_path):
@@ -650,8 +649,10 @@ def main(argv):
     print("{} version {}".format(
         PrefsniffAbout.TITLE.upper(), PrefsniffAbout.VERSION))
     if monitor_dir_events:
+        print("Watching directory: {}".format(plistpath))
         PrefsWatcher(plistpath)
     else:
+        print("Watching prefs file: %s" % plistpath)
         while True:
             try:
                 diffs = PrefSniff(plistpath)
