@@ -10,6 +10,6 @@ setup(name=about["__title__"],
       packages=['prefsniff'],
       entry_points={
           'console_scripts': ['prefsniff=prefsniff.prefsniff_main:main'], },
-      python_requires='>=2.7',
+      python_requires='>=2.7,>=3.7',
       install_requires=['watchdog>=0.8.3'],
       )
