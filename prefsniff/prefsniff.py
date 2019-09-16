@@ -530,24 +530,7 @@ class PrefChangedEventHandler(FileSystemEventHandler):
         self.event_queue.put(("moved", event))
 
 
-def main(plistpath, monitor_dir_events=False, print_diffs=False):
-    if monitor_dir_events:
-        PrefsWatcher(plistpath)
-    else:
-        while True:
-            try:
-                diffs = PrefSniff(plistpath)
-            except KeyboardInterrupt:
-                print("Exiting.")
-                exit(0)
-            if print_diffs:
-                print('\n'.join(diffs.diff))
-            print(STARS)
-            print("")
-            for cmd in diffs.commands:
-                print(cmd)
-            print("")
-            print(STARS)
+
 
 
 def test_dict_add(domain, key, subkey, value):
@@ -591,10 +574,9 @@ def parse_test_args(argv):
         test_write_dict(argv[2:])
         exit(0)
 
-if __name__ == '__main__':
-    #parse_test_args(sys.argv)
 
-    args=parse_args(sys.argv[1:])
+def main(argv):
+    args = parse_args(sys.argv[1:])
     monitor_dir_events=False
     show_diffs=False
     
@@ -607,5 +589,25 @@ if __name__ == '__main__':
 
     if args.show_diffs:
         show_diffs=True
+    print("{} version {}".format(PrefsniffAbout.TITLE.upper(), PrefsniffAbout.VERSION))
+    if monitor_dir_events:
+        PrefsWatcher(plistpath)
+    else:
+        while True:
+            try:
+                diffs = PrefSniff(plistpath)
+            except KeyboardInterrupt:
+                print("Exiting.")
+                exit(0)
+            if show_diffs:
+                print('\n'.join(diffs.diff))
+            print(STARS)
+            print("")
+            for cmd in diffs.commands:
+                print(cmd)
+            print("")
+            print(STARS)
 
-    main(plistpath, monitor_dir_events,print_diffs=show_diffs)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
