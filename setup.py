@@ -6,7 +6,7 @@ with open("prefsniff/__about__.py") as fp:
 setup(name=about["__title__"],
       version=about["__version__"],
       description=about["__summary__"],
-      url="TBD",
+      url="https://github.com/zcutlip/prefsniff",
       packages=['prefsniff'],
       entry_points={
           'console_scripts': ['prefsniff=prefsniff.prefsniff_main:main'], },
