@@ -26,11 +26,18 @@ except ImportError:
     from Queue import Empty as QueueEmpty
     from Queue import Queue
 
+from .version import PrefsniffAbout
+
 STARS="*****************************"
 
 def parse_args(argv):
     parser=argparse.ArgumentParser()
     parser.add_argument("watchpath",help="Directory or plist file to watch for changes.")
+    parser.add_argument(
+        "--version",
+        help="Show version and exit.",
+        action='version',
+        version=str(PrefsniffAbout()))
     parser.add_argument("--show-diffs",help="Show diff of changed plist files.",action="store_true")
     args=parser.parse_args(argv)
     return args
@@ -579,7 +586,7 @@ def main(argv):
     args = parse_args(sys.argv[1:])
     monitor_dir_events=False
     show_diffs=False
-    
+
     plistpath=args.watchpath
     if os.path.isdir(plistpath):
         monitor_dir_events=True
