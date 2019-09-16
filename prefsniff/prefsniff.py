@@ -6,6 +6,7 @@ import difflib
 import inspect
 import os
 import plistlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -483,9 +484,35 @@ class PrefSniff(object):
 
 
 class PrefsWatcher(object):
+    class _PrefsWatchFilter(object):
+
+        def __init__(self, pattern_string, pattern_is_regex=False, negative_match=False):
+            self.pattern = pattern_string
+            self.regex = None
+            if pattern_is_regex:
+                self.regex = re.compile(pattern_string)
+            self.negative_match = negative_match
+        
+        def passes_filter(self, input_string):
+            match = False
+            passes = False
+            if not self.regex:
+                match = self.pattern_string in input_string
+            else:
+                re_match = self.regex.match(input_string)
+                if re_match is not None:
+                    match = True
+
+            if self.negative_match:
+                passes = (not match)
+            else:
+                passes = match
+
+            return passes
 
     def __init__(self, prefsdir):
         self.prefsdir = prefsdir
+        self.filters = [self._PrefsWatchFilter(r".*\.plist$", pattern_is_regex=True)]
         self._watch_prefsdir()
 
     def _watch_prefsdir(self):
@@ -494,9 +521,18 @@ class PrefsWatcher(object):
         observer = Observer()
         observer.schedule(event_handler, self.prefsdir, recursive=False)
         observer.start()
+        
         while True:
             try:
                 changed=event_queue.get(True, 0.5)
+                src_path = changed[1].src_path
+                passes = True
+                for _filter in self.filters:
+                    if not _filter.passes_filter(src_path):
+                        passes = False
+                        break
+                if not passes:
+                    continue
                 print("Detected change: [%s] %s" % (changed[0],changed[1].src_path))
             except QueueEmpty:
                 pass
