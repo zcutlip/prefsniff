@@ -21,25 +21,22 @@ Using
 
 Directory mode example:
 
-    $ ./prefsniff ~/Library/Preferences/
-    Watching prefs file:
-    Detected change: [created] /Users/zach/Library/Preferences/com.apple.dock.plist.DnakVR2
-    Detected change: [modified] /Users/zach/Library/Preferences/
+    $ prefsniff ~/Library/Preferences
+    PREFSNIFF version 0.1.0b3
+    Watching directory: /Users/zach/Library/Preferences
     Detected change: [deleted] /Users/zach/Library/Preferences/com.apple.dock.plist
-    Detected change: [modified] /Users/zach/Library/Preferences/com.apple.dock.plist.DnakVR2
-    Detected change: [moved] /Users/zach/Library/Preferences/com.apple.dock.plist.DnakVR2
-    Detected change: [modified] /Users/zach/Library/Preferences/
+    Detected change: [created] /Users/zach/Library/Preferences/com.apple.dock.plist
 
 File mode example:
 
-    $ ./prefsniff ~/Library/Preferences/com.apple.dock.plist
-    Watching prefs file: com.apple.dock.plist
+    $ prefsniff ~/Library/Preferences/com.apple.dock.plist
+    PREFSNIFF version 0.1.0b3
+    Watching prefs file: /Users/zach/Library/Preferences/com.apple.dock.plist
     *****************************
 
-    defaults write com.apple.dock orientation -string left
+    defaults write com.apple.dock orientation -string right
 
     *****************************
-    Watching prefs file: com.apple.dock.plist
 
 TODO
 ----
