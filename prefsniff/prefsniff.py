@@ -19,6 +19,21 @@ from queue import Empty as QueueEmpty
 from queue import Queue
 
 from .exceptions import PSChangeTypeNotImplementedException
+
+from .changetypes import (
+    PSChangeTypeBase,
+    PSChangeTypeString,
+    PSChangeTypeArray,
+    PSChangeTypeArrayAdd,
+    PSChangeTypeBool,
+    PSChangeTypeData,
+    PSChangeTypeDate,
+    PSChangeTypeDict,
+    PSChangeTypeDictAdd,
+    PSChangeTypeFloat,
+    PSChangeTypeInt,
+    PSChangeTypeKeyDeleted
+)
 from .version import PrefsniffAbout
 
 STARS = "*****************************"
@@ -57,186 +72,6 @@ def serialize_plist(data):
         return plistlib.dumps(data, fmt=plistlib.FMT_XML).decode('utf-8')
     else:
         return plistlib.writePlistToString(data)
-
-
-class PSniffException(Exception):
-    pass
-
-
-class PSChangeTypeException(PSniffException):
-    pass
-
-
-
-
-class PSChangeTypeString:
-
-    def __init__(self, domain, byhost, key, value=None):
-        self.action = "write"
-        self.domain = domain
-        self.key = key
-        self.type = "-string"
-        self.value = value
-        self.byhost = byhost
-
-    def __str__(self):
-        # defaults action domain key
-        command = ['defaults']
-        if self.byhost:
-            command.append('-currentHost')
-
-        command.append(cmd_quote(self.action))
-        command.append(cmd_quote(self.domain))
-        command.append(cmd_quote(self.key))
-
-        # some commands work without a type and are easier that way
-        if self.type is not None:
-            command.append(cmd_quote(self.type))
-        if self.value is not None:
-            if isinstance(self.value, (list, tuple)):
-                command.extend(cmd_quote(x) for x in self.value)
-            else:
-                # print(repr(self.value))
-                command.append(cmd_quote(self.value))
-        return ' '.join(command)
-
-
-class PSChangeTypeKeyDeleted(PSChangeTypeString):
-
-    def __init__(self, domain, byhost, key):
-        super(PSChangeTypeKeyDeleted, self).__init__(
-            domain, byhost, key, value=None)
-        self.action = "delete"
-        self.type = None
-
-
-class PSChangeTypeFloat(PSChangeTypeString):
-
-    def __init__(self, domain, byhost, key, value):
-        super(PSChangeTypeFloat, self).__init__(domain, byhost, key)
-        self.type = "-float"
-        if not isinstance(value, float):
-            raise PSChangeTypeException(
-                "Float required for -float prefs change.")
-        self.value = str(value)
-
-
-class PSChangeTypeInt(PSChangeTypeString):
-
-    def __init__(self, domain, byhost, key, value):
-        super(PSChangeTypeInt, self).__init__(domain, byhost, key)
-        self.type = "-int"
-        if not isinstance(value, int):
-            raise PSChangeTypeException(
-                "Integer required for -int prefs change.")
-        self.value = str(value)
-
-
-class PSChangeTypeBool(PSChangeTypeString):
-
-    def __init__(self, domain, byhost, key, value):
-        super(PSChangeTypeBool, self).__init__(domain, byhost, key)
-        self.type = "-bool"
-        if not isinstance(value, bool):
-            raise PSChangeTypeException(
-                "Boolean required for -bool prefs change.")
-        self.value = str(value)
-
-
-class PSChangeTypeDict(PSChangeTypeString):
-
-    def __init__(self, domain, byhost, key, value={}):
-        super(PSChangeTypeDict, self).__init__(domain, byhost, key)
-        # We have to omit the -dict type
-        # And just let defaults interpet the xml dict string
-        self.type = None
-        # TODO: not sure what to do here. I want to sanity check we got handed a dict
-        # unless we've been subclassed.
-        self.value = value
-        if isinstance(value, dict):
-            self.value = self.to_xmlfrag(value)
-
-    def to_xmlfrag(self, value):
-
-        # create plist-serialized form of changed objects
-        plist_str = serialize_plist(value)
-
-        # remove newlines and tabs from plist
-        plist_str = "".join([line.strip() for line in plist_str.splitlines()])
-        # parse the plist xml doc, so we can pull out the important parts.
-        tree = ET.ElementTree(ET.fromstring(plist_str))
-        # get elements inside <plist> </plist>
-        children = list(tree.getroot())
-        # there can only be one element inside <plist>
-        if len(children) < 1:
-            fn = inspect.getframeinfo(inspect.currentframe()).function
-            raise PSChangeTypeException(
-                "%s: Empty dictionary for key %s" % (fn, str(self.key)))
-        if len(children) > 1:
-            fn = inspect.getframeinfo(inspect.currentframe()).function
-            raise PSChangeTypeException(
-                "%s: Something went wrong for key %s. Can only support one dictionary for dict change." % (fn, self.dict_key))
-        # extract changed objects out of the plist element
-        # python 2 & 3 compat
-        # https://stackoverflow.com/questions/15304229/convert-python-elementtree-to-string#15304351
-        xmlfrag = ET.tostring(children[0]).decode()
-        return xmlfrag
-
-
-class PSChangeTypeArray(PSChangeTypeDict):
-    def __init__(self, domain, byhost, key, value):
-        super(PSChangeTypeArray, self).__init__(domain, byhost, key)
-        if not isinstance(value, list):
-            raise PSChangeTypeException(
-                "PSChangeTypeArray requires a list value type.")
-        self.type = None
-        self.value = self.to_xmlfrag(value)
-
-
-class PSChangeTypeDictAdd(PSChangeTypeDict):
-
-    def __init__(self, domain, byhost, key, subkey, value):
-        super(PSChangeTypeDictAdd, self).__init__(domain, byhost, key)
-        self.type = "-dict-add"
-        self.subkey = subkey
-        self.value = self.__generate_value_string(subkey, value)
-
-    def __generate_value_string(self, subkey, value):
-        xmlfrag = self.to_xmlfrag(value)
-        return (subkey, xmlfrag)
-
-    # def __str__(self):
-    #     # hopefully generate something like:
-    #     #"dict-key 'val-to-add-to-dict'"
-    #     # so we can generate a command like
-    #     # defaults write foo -dict-add dict-key 'value'
-    #     xmlfrag = self.xmlfrag
-    #     return " %s '%s'" % (self.dict_key, xmlfrag)
-
-
-class PSChangeTypeArrayAdd(PSChangeTypeArray):
-    def __init__(self, domain, key, byhost, value):
-        super(PSChangeTypeArrayAdd, self).__init__(domain, byhost, key, value)
-        self.type = "-array-add"
-        self.value = self.__generate_value_string(value)
-
-    def __generate_value_string(self, value):
-        values = []
-        for v in value:
-            values.append(self.to_xmlfrag(v))
-        return values
-
-
-class PSChangeTypeData(PSChangeTypeString):
-    def __init__(self, domain, byhost, key, value):
-        raise PSChangeTypeNotImplementedException(
-            "%s not implemented" % self.__class__.__name__)
-
-
-class PSChangeTypeDate(PSChangeTypeString):
-    def __init__(self, domain, byhost, key, value):
-        raise PSChangeTypeNotImplementedException(
-            "%s not implemented" % self.__class__.__name__)
 
 
 class PrefSniff:
@@ -414,6 +249,7 @@ class PrefSniff:
         return None
 
     def _generate_commands(self):
+        change: PSChangeTypeBase = None
         commands = []
         # sub-dictionaries that must be rewritten because
         # something was removed.
@@ -432,11 +268,12 @@ class PrefSniff:
                 change = change_type(domain, self.byhost, k, v)
             except PSChangeTypeNotImplementedException as e:
                 change = ("key: %s, %s" % (k, str(e)))
-            commands.append(str(change))
+
+            commands.append(change.shell_command())
 
         for k in self.removed:
             change = PSChangeTypeKeyDeleted(domain, self.byhost, k)
-            commands.append(str(change))
+            commands.append(change.shell_command())
         for key, val in self.modified.items():
             if isinstance(val[1], dict):
                 added, removed, modified, same = self._dict_compare(
@@ -449,11 +286,11 @@ class PrefSniff:
                 for subkey, subval in added.items():
                     change = PSChangeTypeDictAdd(
                         domain, self.byhost, key, subkey, subval)
-                    commands.append(str(change))
+                    commands.append(change.shell_command())
                 for subkey, subval_tuple in modified.items():
                     change = PSChangeTypeDictAdd(
                         domain, self.byhost, key, subkey, subval_tuple[1])
-                    commands.append(str(change))
+                    commands.append(change.shell_command())
             elif isinstance(val[1], list):
                 list_diffs = self._list_compare(val[0], val[1])
                 if list_diffs["same"]:
@@ -461,7 +298,7 @@ class PrefSniff:
                 elif list_diffs["append_to_l1"]:
                     append = list_diffs["append_to_l1"]
                     change = PSChangeTypeArrayAdd(domain, key, append)
-                    commands.append(str(change))
+                    commands.append(change.shell_command())
                 else:
                     rewrite_lists[key] = val[1]
             else:
@@ -472,15 +309,15 @@ class PrefSniff:
                     change = change_type(domain, self.byhost, key, val[1])
                 except PSChangeTypeNotImplementedException as e:
                     change = ("key: %s, %s" % (key, str(e)))
-                commands.append(str(change))
+                commands.append(change.shell_command())
 
         for key, val in rewrite_dictionaries.items():
             change = PSChangeTypeDict(domain, self.byhost, key, val)
-            commands.append(str(change))
+            commands.append(change.shell_command())
 
         for key, val in rewrite_lists.items():
             change = PSChangeTypeArray(domain, self.byhost, key, val)
-            commands.append(str(change))
+            commands.append(change.shell_command())
 
         return commands
 
