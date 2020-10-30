@@ -3,18 +3,14 @@
 import argparse
 import datetime
 import difflib
-import inspect
 import os
 import plistlib
 import re
 import subprocess
 import sys
-import tempfile
-import xml.etree.ElementTree as ET
 from pwd import getpwuid
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from shlex import quote as cmd_quote
 from queue import Empty as QueueEmpty
 from queue import Queue
 
