@@ -472,7 +472,7 @@ class PrefSniff:
                 try:
                     change = change_type(domain, self.byhost, key, val[1])
                 except PSChangeTypeNotImplementedException as e:
-                    change = ("key: %s, %s" % (k, str(e)))
+                    change = ("key: %s, %s" % (key, str(e)))
                 commands.append(str(change))
 
         for key, val in rewrite_dictionaries.items():
