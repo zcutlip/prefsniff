@@ -18,6 +18,7 @@ from shlex import quote as cmd_quote
 from queue import Empty as QueueEmpty
 from queue import Queue
 
+from .exceptions import PSChangeTypeNotImplementedException
 from .version import PrefsniffAbout
 
 STARS = "*****************************"
@@ -66,8 +67,6 @@ class PSChangeTypeException(PSniffException):
     pass
 
 
-class PSChangeTypeNotImplementedException(PSChangeTypeException):
-    pass
 
 
 class PSChangeTypeString:
