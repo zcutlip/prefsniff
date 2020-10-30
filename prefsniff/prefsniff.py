@@ -12,20 +12,11 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pwd import getpwuid
-
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-try:
-    from shlex import quote as cmd_quote
-except ImportError:
-    # https://stackoverflow.com/questions/26790916/python-3-backward-compatability-shlex-quote-vs-pipes-quote#26791164
-    from pipes import quote as cmd_quote
-try:
-    from queue import Empty as QueueEmpty
-    from queue import Queue
-except ImportError:
-    from Queue import Empty as QueueEmpty
-    from Queue import Queue
+from shlex import quote as cmd_quote
+from queue import Empty as QueueEmpty
+from queue import Queue
 
 from .version import PrefsniffAbout
 
@@ -79,7 +70,7 @@ class PSChangeTypeNotImplementedException(PSChangeTypeException):
     pass
 
 
-class PSChangeTypeString(object):
+class PSChangeTypeString:
 
     def __init__(self, domain, byhost, key, value=None):
         self.action = "write"
@@ -249,7 +240,7 @@ class PSChangeTypeDate(PSChangeTypeString):
             "%s not implemented" % self.__class__.__name__)
 
 
-class PrefSniff(object):
+class PrefSniff:
     CHANGE_TYPES = {int: PSChangeTypeInt,
                     float: PSChangeTypeFloat,
                     str: PSChangeTypeString,
@@ -498,8 +489,8 @@ class PrefSniff(object):
         subprocess.check_call(args, stdout=stdout)
 
 
-class PrefsWatcher(object):
-    class _PrefsWatchFilter(object):
+class PrefsWatcher:
+    class _PrefsWatchFilter:
 
         def __init__(self, pattern_string, pattern_is_regex=False, negative_match=False):
             self.pattern = pattern_string
