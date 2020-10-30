@@ -1,0 +1,6 @@
+--find-links=file:./deps
+flake8
+autopep8
+pycodestyle
+bpython
+-r requirements.txt
