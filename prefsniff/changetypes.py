@@ -20,9 +20,6 @@ class PSChangeTypeBase:
         self.action = self.ACTION
         self.domain = domain
         self.key = key
-        if self.TYPE is None:
-            raise NotImplementedError(
-                "self.TYPE is None")
         self.type = self.TYPE
         self.value = value
         self.byhost = byhost
