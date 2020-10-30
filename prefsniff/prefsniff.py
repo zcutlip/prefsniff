@@ -54,26 +54,6 @@ def parse_args(argv):
     return args
 
 
-def deserialize_plist(data):
-    if sys.version_info >= (3, 4):
-        return plistlib.loads(data)
-    else:
-        if data.startswith(b'bplist'):
-            with tempfile.NamedTemporaryFile() as f:
-                f.write(data)
-                f.flush()
-                data = subprocess.check_output(
-                    ["plutil", "-convert", "xml1", "-o", "-", f.name])
-        return plistlib.readPlistFromString(data)
-
-
-def serialize_plist(data):
-    if sys.version_info >= (3, 4):
-        return plistlib.dumps(data, fmt=plistlib.FMT_XML).decode('utf-8')
-    else:
-        return plistlib.writePlistToString(data)
-
-
 class PrefSniff:
     CHANGE_TYPES = {int: PSChangeTypeInt,
                     float: PSChangeTypeFloat,
@@ -144,13 +124,13 @@ class PrefSniff:
 
         # Read the preference file before it changed
         with open(plistpath, 'rb') as f:
-            pref1 = deserialize_plist(f.read())
+            pref1 = plistlib.load(f)
 
         self._wait_for_prefchange()
 
         # Read the preference file after it changed
         with open(plistpath, 'rb') as f:
-            pref2 = deserialize_plist(f.read())
+            pref2 = plistlib.load(f)
 
         added, removed, modified, same = self._dict_compare(pref1, pref2)
         self.removed = {}
@@ -204,7 +184,11 @@ class PrefSniff:
 
     def _unified_diff(self, frompref, topref, path):
         # Convert both preferences to XML format
-        fromxml, toxml = serialize_plist(frompref), serialize_plist(topref)
+        fromxml = plistlib.dumps(
+            frompref, fmt=plistlib.FMT_XML).decode('utf-8')
+        toxml = plistlib.dumps(
+            topref, fmt=plistlib.FMT_XML).decode('utf-8')
+
         fromlines, tolines = fromxml.splitlines(), toxml.splitlines()
         return difflib.unified_diff(fromlines, tolines, path, path)
 
