@@ -9,6 +9,7 @@ from .exceptions import (
 
 
 class PSChangeTypeBase:
+    CHANGE_TYPE = None
     COMMAND = "defaults"
     ACTION = None
     TYPE = None
@@ -64,16 +65,19 @@ class PSChangeTypeBase:
 
 
 class PSChangeTypeString(PSChangeTypeBase):
+    CHANGE_TYPE = "string"
     ACTION = "write"
     TYPE = "string"
 
 
 class PSChangeTypeKeyDeleted(PSChangeTypeString):
+    CHANGE_TYPE = "deleted"
     ACTION = "delete"
     TYPE = None
 
 
 class PSChangeTypeFloat(PSChangeTypeString):
+    CHANGE_TYPE = "float"
     TYPE = "float"
 
     def __init__(self, domain, byhost, key, value):
@@ -86,6 +90,7 @@ class PSChangeTypeFloat(PSChangeTypeString):
 
 
 class PSChangeTypeInt(PSChangeTypeString):
+    CHANGE_TYPE = "int"
     TYPE = "int"
 
     def __init__(self, domain, byhost, key, value):
@@ -97,7 +102,7 @@ class PSChangeTypeInt(PSChangeTypeString):
 
 
 class PSChangeTypeBool(PSChangeTypeString):
-
+    CHANGE_TYPE = "bool"
     TYPE = "bool"
 
     def __init__(self, domain, byhost, key, value):
@@ -109,6 +114,7 @@ class PSChangeTypeBool(PSChangeTypeString):
 
 
 class PSChangeTypeDict(PSChangeTypeString):
+    CHANGE_TYPE = "dict"
     # We have to omit the -dict type
     # And just let defaults interpet the xml dict string
     TYPE = None
@@ -150,6 +156,7 @@ class PSChangeTypeDict(PSChangeTypeString):
 
 
 class PSChangeTypeArray(PSChangeTypeDict):
+    CHANGE_TYPE = "array"
     TYPE = None
 
     def __init__(self, domain, byhost, key, value):
@@ -161,6 +168,7 @@ class PSChangeTypeArray(PSChangeTypeDict):
 
 
 class PSChangeTypeDictAdd(PSChangeTypeDict):
+    CHANGE_TYPE = "dict-add"
     TYPE = "dict-add"
 
     def __init__(self, domain, byhost, key, subkey, value):
@@ -182,6 +190,7 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
 
 
 class PSChangeTypeArrayAdd(PSChangeTypeArray):
+    CHANGE_TYPE = "array-add"
     TYPE = "array-add"
 
     def __init__(self, domain, key, byhost, value):
@@ -196,12 +205,16 @@ class PSChangeTypeArrayAdd(PSChangeTypeArray):
 
 
 class PSChangeTypeData(PSChangeTypeString):
+    CHANGE_TYPE = "data"
+
     def __init__(self, domain, byhost, key, value):
         raise PSChangeTypeNotImplementedException(
             "%s not implemented" % self.__class__.__name__)
 
 
 class PSChangeTypeDate(PSChangeTypeString):
+    CHANGE_TYPE = "date"
+
     def __init__(self, domain, byhost, key, value):
         raise PSChangeTypeNotImplementedException(
             "%s not implemented" % self.__class__.__name__)
