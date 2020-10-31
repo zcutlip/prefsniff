@@ -2,13 +2,15 @@ from shlex import quote as cmd_quote
 import plistlib
 import xml.etree.ElementTree as ET
 import inspect
+
+from py_dict_repr.py_dict_repr import DictRepr
 from .exceptions import (
     PSChangeTypeException,
     PSChangeTypeNotImplementedException
 )
 
 
-class PSChangeTypeBase:
+class PSChangeTypeBase(DictRepr):
     CHANGE_TYPE = None
     COMMAND = "defaults"
     ACTION = None
@@ -24,6 +26,14 @@ class PSChangeTypeBase:
         self.type = self.TYPE
         self.value = value
         self.byhost = byhost
+
+    def keys(self):
+        _keys = ["change_type", "command", "action", "domain", "key", "type", "value", "byhost"]
+        return _keys
+
+    @property
+    def change_type(self):
+        return self.CHANGE_TYPE
 
     def _quote(self, value, quote=True):
         if quote:
