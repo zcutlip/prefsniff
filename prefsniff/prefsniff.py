@@ -151,7 +151,7 @@ class PrefSniff:
         if len(modified):
             self.modified = modified
 
-        self.commands = self._generate_commands()
+        self.changes = self._generate_changes()
         self.diff = self._unified_diff(pref1, pref2, plistpath)
 
     def _dict_compare(self, d1, d2):
@@ -236,9 +236,9 @@ class PrefSniff:
 
         return None
 
-    def _generate_commands(self):
+    def _generate_changes(self) -> List[PSChangeTypeArray]:
         change: PSChangeTypeBase = None
-        commands = []
+        changes = []
         # sub-dictionaries that must be rewritten because
         # something was removed.
         rewrite_dictionaries = {}
@@ -257,11 +257,12 @@ class PrefSniff:
             except PSChangeTypeNotImplementedException as e:
                 change = ("key: %s, %s" % (k, str(e)))
 
-            commands.append(change.shell_command())
+            changes.append(change)
 
         for k in self.removed:
             change = PSChangeTypeKeyDeleted(domain, self.byhost, k)
-            commands.append(change.shell_command())
+            changes.append(change)
+
         for key, val in self.modified.items():
             if isinstance(val[1], dict):
                 added, removed, modified, same = self._dict_compare(
@@ -274,11 +275,11 @@ class PrefSniff:
                 for subkey, subval in added.items():
                     change = PSChangeTypeDictAdd(
                         domain, self.byhost, key, subkey, subval)
-                    commands.append(change.shell_command())
+                    changes.append(change)
                 for subkey, subval_tuple in modified.items():
                     change = PSChangeTypeDictAdd(
                         domain, self.byhost, key, subkey, subval_tuple[1])
-                    commands.append(change.shell_command())
+                    changes.append(change)
             elif isinstance(val[1], list):
                 list_diffs = self._list_compare(val[0], val[1])
                 if list_diffs["same"]:
@@ -286,7 +287,7 @@ class PrefSniff:
                 elif list_diffs["append_to_l1"]:
                     append = list_diffs["append_to_l1"]
                     change = PSChangeTypeArrayAdd(domain, key, append)
-                    commands.append(change.shell_command())
+                    changes.append(change)
                 else:
                     rewrite_lists[key] = val[1]
             else:
@@ -297,17 +298,22 @@ class PrefSniff:
                     change = change_type(domain, self.byhost, key, val[1])
                 except PSChangeTypeNotImplementedException as e:
                     change = ("key: %s, %s" % (key, str(e)))
-                commands.append(change.shell_command())
+                changes.append(change)
 
         for key, val in rewrite_dictionaries.items():
             change = PSChangeTypeDict(domain, self.byhost, key, val)
-            commands.append(change.shell_command())
+            changes.append(change)
 
         for key, val in rewrite_lists.items():
             change = PSChangeTypeArray(domain, self.byhost, key, val)
-            commands.append(change.shell_command())
+            changes.append(change)
 
-        return commands
+        return changes
+
+    @property
+    def commands(self):
+        _commands = [ch.shell_command() for ch in self.changes]
+        return _commands
 
     def execute(self, args, stdout=None):
         subprocess.check_call(args, stdout=stdout)
