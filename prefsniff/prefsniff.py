@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 from pwd import getpwuid
+from typing import List
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from queue import Empty as QueueEmpty
@@ -46,6 +47,9 @@ def parse_args(argv):
         version=str(PrefsniffAbout()))
     parser.add_argument(
         "--show-diffs", help="Show diff of changed plist files.", action="store_true")
+    parser.add_argument("--plist2",
+                        help="Optionally compare WATCHPATH against this plist rather than waiting for changes to the original."
+                        )
     args = parser.parse_args(argv)
     return args
 
@@ -110,7 +114,7 @@ class PrefSniff:
 
         return domain
 
-    def __init__(self, plistpath):
+    def __init__(self, plistpath, plistpath2=None):
         self.plist_dir = os.path.dirname(plistpath)
         self.plist_base = os.path.basename(plistpath)
         self.byhost = self.is_byhost(plistpath)
@@ -122,10 +126,14 @@ class PrefSniff:
         with open(plistpath, 'rb') as f:
             pref1 = plistlib.load(f)
 
-        self._wait_for_prefchange()
+        if plistpath2 is None:
+            self.plistpath2 = plistpath
+            self._wait_for_prefchange()
+        else:
+            self.plistpath2 = plistpath2
 
         # Read the preference file after it changed
-        with open(plistpath, 'rb') as f:
+        with open(plistpath2, 'rb') as f:
             pref2 = plistlib.load(f)
 
         added, removed, modified, same = self._dict_compare(pref1, pref2)
