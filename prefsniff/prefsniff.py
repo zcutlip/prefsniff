@@ -453,7 +453,7 @@ def parse_test_args(argv):
         exit(0)
 
 
-def main(argv):
+def main():
     args = parse_args(sys.argv[1:])
     monitor_dir_events = False
     show_diffs = False
@@ -497,4 +497,4 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
