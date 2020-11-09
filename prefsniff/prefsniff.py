@@ -133,7 +133,7 @@ class PrefSniff:
             self.plistpath2 = plistpath2
 
         # Read the preference file after it changed
-        with open(plistpath2, 'rb') as f:
+        with open(self.plistpath2, 'rb') as f:
             pref2 = plistlib.load(f)
 
         added, removed, modified, same = self._dict_compare(pref1, pref2)
