@@ -14,7 +14,7 @@ setup(name=about["__title__"],
       url="https://github.com/zcutlip/prefsniff",
       packages=['prefsniff'],
       entry_points={
-          'console_scripts': ['prefsniff=prefsniff.prefsniff_main:main'], },
+          'console_scripts': ['prefsniff=prefsniff.prefsniff:main'], },
       python_requires='>= 3.7',
       install_requires=['watchdog>=0.8.3'],
       )
