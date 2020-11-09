@@ -468,9 +468,15 @@ def main(argv):
         PrefsWatcher(plistpath)
     else:
         print("Watching prefs file: %s" % plistpath)
-        while True:
+        done = False
+        while not done:
+            plist2 = None
+            if args.plist2:
+                plist2 = args.plist2
+                done = True
+
             try:
-                diffs = PrefSniff(plistpath)
+                diffs = PrefSniff(plistpath, plistpath2=plist2)
             except KeyboardInterrupt:
                 print("Exiting.")
                 exit(0)
