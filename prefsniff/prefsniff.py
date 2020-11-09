@@ -61,7 +61,7 @@ class PrefSniff:
                     bool: PSChangeTypeBool,
                     dict: PSChangeTypeDict,
                     list: PSChangeTypeArray,
-                    plistlib.Data: PSChangeTypeData,
+                    bytes: PSChangeTypeData,
                     datetime.datetime: PSChangeTypeDate}
 
     @classmethod
