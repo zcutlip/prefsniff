@@ -5,12 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Module",
+            "name": "prefsniff wait",
             "type": "python",
             "request": "launch",
             "module": "prefsniff.prefsniff",
             "args": [
                 "~/Library/Preferences/com.apple.symbolichotkeys.plist"
+            ]
+        },
+        {
+            "name": "prefsniff two files",
+            "type": "python",
+            "request": "launch",
+            "module": "prefsniff.prefsniff",
+            "args": [
+                "./com.apple.symbolichotkeys_1.plist",
+                "--plist2",
+                "./com.apple.symbolichotkeys_2.plist"
+
             ]
         }
     ]
