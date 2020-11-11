@@ -31,6 +31,15 @@ class PSChangeTypeBase(DictRepr):
         _keys = ["change_type", "command", "action", "domain", "key", "type", "value", "byhost"]
         return _keys
 
+    @classmethod
+    def from_dict(cls, ch_type_dict: Dict):
+        domain = ch_type_dict["domain"]
+        byhost = ch_type_dict["byhost"]
+        key = ch_type_dict["key"]
+        value = ch_type_dict["value"]
+        obj = cls(domain, byhost, key, value=value)
+        return obj
+
     @property
     def change_type(self):
         return self.CHANGE_TYPE
@@ -188,11 +197,27 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
     def __init__(self, domain, byhost, key, subkey, value):
         super().__init__(domain, byhost, key)
         self.subkey = subkey
+        self.base_value = value
         self.value = self._generate_value_string(subkey, value)
 
     def _generate_value_string(self, subkey, value):
         xmlfrag = self.to_xmlfrag(value)
         return (subkey, xmlfrag)
+
+    def keys(self):
+        _keys = super().keys()
+        _keys.extend(["subkey", "base_value"])
+        return _keys
+
+    @classmethod
+    def from_dict(cls, ch_type_dict: Dict):
+        domain = ch_type_dict["domain"]
+        byhost = ch_type_dict["byhost"]
+        key = ch_type_dict["key"]
+        subkey = ch_type_dict["subkey"]
+        value = ch_type_dict["base_value"]
+        obj = cls(domain, byhost, key, subkey, value)
+        return obj
 
     # def __str__(self):
     #     # hopefully generate something like:
