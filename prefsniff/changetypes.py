@@ -1,7 +1,9 @@
-from shlex import quote as cmd_quote
-import plistlib
-import xml.etree.ElementTree as ET
+from abc import ABCMeta
 import inspect
+import plistlib
+from shlex import quote as cmd_quote
+from typing import Dict
+import xml.etree.ElementTree as ET
 
 from py_dict_repr.py_dict_repr import DictRepr
 from .exceptions import (
