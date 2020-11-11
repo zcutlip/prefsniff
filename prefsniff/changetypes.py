@@ -12,7 +12,43 @@ from .exceptions import (
 )
 
 
-class PSChangeTypeBase(DictRepr):
+class PSChangeTypeRegistry(type):
+    REGISTERED_CHANGE_TYPES = {}
+
+    def __new__(cls, clsname, bases, dct, *args, **kwargs):
+        newclass = super(PSChangeTypeRegistry, cls).__new__(
+            cls, clsname, bases, dct
+        )
+        if newclass.CHANGE_TYPE:
+            ch_type = newclass.CHANGE_TYPE
+            if ch_type in cls.REGISTERED_CHANGE_TYPES:
+                raise Exception(
+                    "class {:s} attempting to register previously registered preference change type: {}".format(
+                        cls.__name__, ch_type))
+            cls.REGISTERED_CHANGE_TYPES[ch_type] = newclass
+        return newclass
+
+    @classmethod
+    def ch_type_class_lookup(cls, ch_type: str):
+        ch_type_class = cls.REGISTERED_CHANGE_TYPES[ch_type]
+        return ch_type_class
+
+
+PSChangeTypeMeta = type(
+    'SBHeaderMeta', (ABCMeta, PSChangeTypeRegistry), {})
+
+
+class PSChangeTypeFactory:
+
+    @classmethod
+    def ps_change_type_from_dict(cls, ch_type_dict: Dict):
+        ch_type = ch_type_dict["change_type"]
+        ch_type_class = PSChangeTypeRegistry.ch_type_class_lookup(ch_type)
+        obj = ch_type_class.from_dict(ch_type_dict)
+        return obj
+
+
+class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
     CHANGE_TYPE = None
     COMMAND = "defaults"
     ACTION = None
