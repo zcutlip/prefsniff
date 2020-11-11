@@ -93,6 +93,8 @@ class PSChangeTypeFloat(PSChangeTypeString):
     def __init__(self, domain, byhost, key, value):
         super().__init__(domain, byhost, key)
         self.type = "-float"
+        if isinstance(value, str):
+            value = float(str)
         if not isinstance(value, float):
             raise PSChangeTypeException(
                 "Float required for -float prefs change.")
@@ -105,7 +107,9 @@ class PSChangeTypeInt(PSChangeTypeString):
 
     def __init__(self, domain, byhost, key, value):
         super().__init__(domain, byhost, key)
-        if not isinstance(value, int):
+        if isinstance(value, str):
+            value = int(value, 0)
+        elif not isinstance(value, int):
             raise PSChangeTypeException(
                 "Integer required for -int prefs change.")
         self.value = str(value)
