@@ -54,7 +54,7 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
     ACTION = None
     TYPE = None
 
-    def __init__(self, domain, byhost, key, value=None):
+    def __init__(self, domain, byhost, key, value):
         if self.ACTION is None:
             raise NotImplementedError("Need to sublclass and override cls.ACTION")
         self.command = self.COMMAND
@@ -75,7 +75,7 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
         byhost = ch_type_dict["byhost"]
         key = ch_type_dict["key"]
         value = ch_type_dict["value"]
-        obj = cls(domain, byhost, key, value=value)
+        obj = cls(domain, byhost, key, value)
         return obj
 
     @property
