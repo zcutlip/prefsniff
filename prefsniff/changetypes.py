@@ -210,15 +210,19 @@ class PSChangeTypeCompositeBase(PSChangeTypeBase):
         return xmlfrag
 
 
-class PSChangeTypeArray(PSChangeTypeDict):
+class PSChangeTypeArray(PSChangeTypeCompositeBase):
     CHANGE_TYPE = "array"
+    ACTION = "write"
     TYPE = None
 
     def __init__(self, domain, byhost, key, value):
-        super().__init__(domain, byhost, key)
         if not isinstance(value, list):
             raise PSChangeTypeException(
                 "PSChangeTypeArray requires a list value type.")
+        super().__init__(domain, byhost, key, value)
+        self.converted_value = self.to_xmlfrag(value)
+
+
 class PSChangeTypeDict(PSChangeTypeCompositeBase):
     CHANGE_TYPE = "dict"
     ACTION = "write"
@@ -234,12 +238,13 @@ class PSChangeTypeDict(PSChangeTypeCompositeBase):
         self.converted_value = self.to_xmlfrag(value)
 
 
-class PSChangeTypeDictAdd(PSChangeTypeDict):
+class PSChangeTypeDictAdd(PSChangeTypeCompositeBase):
     CHANGE_TYPE = "dict-add"
+    ACTION = "write"
     TYPE = "dict-add"
 
     def __init__(self, domain, byhost, key, subkey, value):
-        super().__init__(domain, byhost, key)
+        super().__init__(domain, byhost, key, value)
         self.subkey = subkey
         self.converted_value = self._generate_value_string(subkey, value)
 
