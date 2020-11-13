@@ -63,6 +63,7 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
         self.key = key
         self.type = self.TYPE
         self.value = value
+        self.converted_value = value
         self.byhost = byhost
 
     def keys(self):
@@ -107,11 +108,15 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
     def _value_argv(self, quote=True):
 
         value_argv = None
-        if self.value is not None:
-            if isinstance(self.value, (list, tuple)):
-                value_argv = [self._quote(v, quote=quote) for v in self.value]
+        if self.converted_value is not None:
+            if isinstance(self.converted_value, (list, tuple)):
+                value_argv = [self._quote(v, quote=quote) for v in self.converted_value]
             else:
-                value_argv = [self._quote(self.value, quote=quote)]
+                if isinstance(self.converted_value, str):
+                    value_string = self.converted_value
+                else:
+                    value_string = str(self.converted_value)
+                value_argv = [self._quote(value_string, quote=quote)]
 
         return value_argv
 
@@ -225,7 +230,7 @@ class PSChangeTypeArray(PSChangeTypeDict):
         if not isinstance(value, list):
             raise PSChangeTypeException(
                 "PSChangeTypeArray requires a list value type.")
-        self.value = self.to_xmlfrag(value)
+        self.converted_value = self.to_xmlfrag(value)
 
 
 class PSChangeTypeDictAdd(PSChangeTypeDict):
@@ -235,8 +240,7 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
     def __init__(self, domain, byhost, key, subkey, value):
         super().__init__(domain, byhost, key)
         self.subkey = subkey
-        self.base_value = value
-        self.value = self._generate_value_string(subkey, value)
+        self.converted_value = self._generate_value_string(subkey, value)
 
     def _generate_value_string(self, subkey, value):
         xmlfrag = self.to_xmlfrag(value)
@@ -244,7 +248,7 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
 
     def keys(self):
         _keys = super().keys()
-        _keys.extend(["subkey", "base_value"])
+        _keys.extend(["subkey"])
         return _keys
 
     @classmethod
@@ -253,7 +257,7 @@ class PSChangeTypeDictAdd(PSChangeTypeDict):
         byhost = ch_type_dict["byhost"]
         key = ch_type_dict["key"]
         subkey = ch_type_dict["subkey"]
-        value = ch_type_dict["base_value"]
+        value = ch_type_dict["value"]
         obj = cls(domain, byhost, key, subkey, value)
         return obj
 
@@ -272,7 +276,7 @@ class PSChangeTypeArrayAdd(PSChangeTypeArray):
 
     def __init__(self, domain, key, byhost, value):
         super().__init__(domain, byhost, key, value)
-        self.value = self._generate_value_string(value)
+        self.converted_value = self._generate_value_string(value)
 
     def _generate_value_string(self, value):
         values = []
