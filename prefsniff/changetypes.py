@@ -179,20 +179,9 @@ class PSChangeTypeBool(PSChangeTypeString):
         self.value = str(value)
 
 
-class PSChangeTypeDict(PSChangeTypeString):
-    CHANGE_TYPE = "dict"
-    # We have to omit the -dict type
-    # And just let defaults interpet the xml dict string
+class PSChangeTypeCompositeBase(PSChangeTypeBase):
+    CHANGE_TYPE = None
     TYPE = None
-
-    def __init__(self, domain, byhost, key, value={}):
-        super().__init__(domain, byhost, key)
-
-        # TODO: not sure what to do here. I want to sanity check we got handed a dict
-        # unless we've been subclassed.
-        self.value = value
-        if isinstance(value, dict):
-            self.value = self.to_xmlfrag(value)
 
     def to_xmlfrag(self, value):
 
@@ -230,6 +219,18 @@ class PSChangeTypeArray(PSChangeTypeDict):
         if not isinstance(value, list):
             raise PSChangeTypeException(
                 "PSChangeTypeArray requires a list value type.")
+class PSChangeTypeDict(PSChangeTypeCompositeBase):
+    CHANGE_TYPE = "dict"
+    ACTION = "write"
+    # We have to omit the -dict type
+    # And just let defaults interpet the xml dict string
+    TYPE = None
+
+    def __init__(self, domain, byhost, key, value):
+        if not isinstance(value, dict):
+            raise PSChangeTypeException(
+                "Dict required for -dict prefs change.")
+        super().__init__(domain, byhost, key, value)
         self.converted_value = self.to_xmlfrag(value)
 
 
