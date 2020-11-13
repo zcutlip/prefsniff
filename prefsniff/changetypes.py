@@ -143,14 +143,13 @@ class PSChangeTypeFloat(PSChangeTypeString):
     TYPE = "float"
 
     def __init__(self, domain, byhost, key, value):
-        super().__init__(domain, byhost, key)
         self.type = "-float"
-        if isinstance(value, str):
-            value = float(str)
+
         if not isinstance(value, float):
             raise PSChangeTypeException(
                 "Float required for -float prefs change.")
-        self.value = str(value)
+
+        super().__init__(domain, byhost, key, value)
 
 
 class PSChangeTypeInt(PSChangeTypeString):
@@ -158,13 +157,12 @@ class PSChangeTypeInt(PSChangeTypeString):
     TYPE = "int"
 
     def __init__(self, domain, byhost, key, value):
-        super().__init__(domain, byhost, key)
-        if isinstance(value, str):
-            value = int(value, 0)
-        elif not isinstance(value, int):
+
+        if not isinstance(value, int):
             raise PSChangeTypeException(
                 "Integer required for -int prefs change.")
-        self.value = str(value)
+
+        super().__init__(domain, byhost, key, value)
 
 
 class PSChangeTypeBool(PSChangeTypeString):
@@ -172,11 +170,10 @@ class PSChangeTypeBool(PSChangeTypeString):
     TYPE = "bool"
 
     def __init__(self, domain, byhost, key, value):
-        super().__init__(domain, byhost, key)
         if not isinstance(value, bool):
             raise PSChangeTypeException(
                 "Boolean required for -bool prefs change.")
-        self.value = str(value)
+        super().__init__(domain, byhost, key, value)
 
 
 class PSChangeTypeCompositeBase(PSChangeTypeBase):
