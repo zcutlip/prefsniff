@@ -16,5 +16,5 @@ setup(name=about["__title__"],
       entry_points={
           'console_scripts': ['prefsniff=prefsniff.prefsniff:main'], },
       python_requires='>= 3.7',
-      install_requires=['watchdog>=0.8.3', 'py-dict-repr'],
+      install_requires=['watchdog>=1.0.2', 'py-dict-repr'],
       )
