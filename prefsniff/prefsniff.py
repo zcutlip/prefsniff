@@ -56,6 +56,9 @@ def parse_args(argv):
 
 
 class PrefSniff:
+    STANDARD_PATHS = ["~/Library/Preferences",
+                      "/Library/Preferences"]
+
     CHANGE_TYPES = {int: PSChangeTypeInt,
                     float: PSChangeTypeFloat,
                     str: PSChangeTypeString,
@@ -89,15 +92,34 @@ class PrefSniff:
         return getpwuid(os.stat(plistpath).st_uid).pw_name == 'root'
 
     @classmethod
+    def standard_path(cls, plistpath: str):
+        standard = False
+        path: str
+        for path in cls.STANDARD_PATHS:
+            path_real = os.path.expanduser(path)
+            if plistpath.startswith(path):
+                standard = True
+                break
+            elif plistpath.startswith(path_real):
+                standard = True
+                break
+
+        return standard
+
+    @classmethod
     def getdomain(cls, plistpath, byhost=False):
         domain = None
+
         globaldomain = cls.is_nsglobaldomain(plistpath)
         root_owned = cls.is_root_owned(plistpath)
-
+        standard_path = cls.standard_path(plistpath)
+        real_path = os.path.realpath(plistpath)
         # if root owned (like in /Library/Preferences), need to specify fully qualified
         # literal filename rather than a namespace
         if root_owned:
-            domain = plistpath
+            domain = real_path
+        elif not standard_path:
+            domain = real_path
         elif globaldomain:
             domain = "NSGlobalDomain"
         elif byhost:
