@@ -29,7 +29,8 @@ from .changetypes import (
     PSChangeTypeDictAdd,
     PSChangeTypeFloat,
     PSChangeTypeInt,
-    PSChangeTypeKeyDeleted
+    PSChangeTypeKeyDeleted,
+    PSChangeTypeFactory
 )
 from .version import PrefsniffAbout
 
@@ -486,13 +487,16 @@ def main():
             except KeyboardInterrupt:
                 print("Exiting.")
                 exit(0)
-            if show_diffs:
-                print('\n'.join(diffs.diff))
+
             print(STARS)
             print("")
-            for cmd in diffs.commands:
-                print(cmd)
-            print("")
+            for ch in diffs.changes:
+                ch_dict = dict(ch)
+                new_ch = PSChangeTypeFactory.ps_change_type_from_dict(ch_dict)
+                print(new_ch.shell_command())
+                print("")
+            if show_diffs:
+                print('\n'.join(diffs.diff))
             print(STARS)
 
 
