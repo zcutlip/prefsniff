@@ -137,6 +137,9 @@ class PSChangeTypeKeyDeleted(PSChangeTypeString):
     ACTION = "delete"
     TYPE = None
 
+    def __init__(self, domain, byhost, key, *args):
+        super().__init__(domain, byhost, key, None)
+
 
 class PSChangeTypeFloat(PSChangeTypeString):
     CHANGE_TYPE = "float"
