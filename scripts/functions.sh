@@ -54,11 +54,19 @@ prompt_yes_no(){
     read -p "$prompt_string [Y/n] " response
 
     case $response in
-    [yY][eE][sS]|[yY]) 
+    [yY][eE][sS]|[yY])
         return $SUCCESS
         ;;
         *)
         return $FAILURE
         ;;
     esac
+}
+
+generate_dist(){
+    python3 setup.py sdist || quit "Failed to generate source distribution." 1
+    for ver in $@;
+    do
+       python$ver setup.py bdist_wheel || quit "Failed to generate binary distribution for python $ver." 1
+    done
 }
