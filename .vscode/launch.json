@@ -5,7 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "prefsniff wait",
+            "name": "prefsniff foo.plist",
+            "type": "python",
+            "request": "launch",
+            "module": "prefsniff.prefsniff",
+            "args": [
+                "./foo.plist"
+            ]
+        },
+        {
+            "name": "prefsniff hotkeys",
             "type": "python",
             "request": "launch",
             "module": "prefsniff.prefsniff",
