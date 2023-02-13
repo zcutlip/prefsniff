@@ -1,8 +1,4 @@
-from . import (
-    __version__,
-    __title__,
-    __summary__
-)
+from . import __summary__, __title__, __version__
 
 
 class PrefsniffAbout(object):

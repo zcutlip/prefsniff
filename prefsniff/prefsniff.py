@@ -9,29 +9,29 @@ import re
 import subprocess
 import sys
 from pwd import getpwuid
-from typing import List
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
 from queue import Empty as QueueEmpty
 from queue import Queue
+from typing import List
 
-from .exceptions import PSChangeTypeNotImplementedException
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 from .changetypes import (
-    PSChangeTypeBase,
-    PSChangeTypeString,
     PSChangeTypeArray,
     PSChangeTypeArrayAdd,
+    PSChangeTypeBase,
     PSChangeTypeBool,
     PSChangeTypeData,
     PSChangeTypeDate,
     PSChangeTypeDict,
     PSChangeTypeDictAdd,
+    PSChangeTypeFactory,
     PSChangeTypeFloat,
     PSChangeTypeInt,
     PSChangeTypeKeyDeleted,
-    PSChangeTypeFactory
+    PSChangeTypeString
 )
+from .exceptions import PSChangeTypeNotImplementedException
 from .version import PrefsniffAbout
 
 STARS = "*****************************"

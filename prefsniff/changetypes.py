@@ -1,11 +1,12 @@
-from abc import ABCMeta
 import inspect
 import plistlib
+import xml.etree.ElementTree as ET
+from abc import ABCMeta
 from shlex import quote as cmd_quote
 from typing import Dict
-import xml.etree.ElementTree as ET
 
 from py_dict_repr.py_dict_repr import DictRepr
+
 from .exceptions import (
     PSChangeTypeException,
     PSChangeTypeNotImplementedException
@@ -56,7 +57,8 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
 
     def __init__(self, domain, byhost, key, value):
         if self.ACTION is None:
-            raise NotImplementedError("Need to sublclass and override cls.ACTION")
+            raise NotImplementedError(
+                "Need to sublclass and override cls.ACTION")
         self.command = self.COMMAND
         self.action = self.ACTION
         self.domain = domain
@@ -67,7 +69,8 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
         self.byhost = byhost
 
     def keys(self):
-        _keys = ["change_type", "command", "action", "domain", "key", "type", "value", "byhost"]
+        _keys = ["change_type", "command", "action",
+                 "domain", "key", "type", "value", "byhost"]
         return _keys
 
     @classmethod
@@ -110,7 +113,8 @@ class PSChangeTypeBase(DictRepr, metaclass=PSChangeTypeMeta):
         value_argv = None
         if self.converted_value is not None:
             if isinstance(self.converted_value, (list, tuple)):
-                value_argv = [self._quote(v, quote=quote) for v in self.converted_value]
+                value_argv = [self._quote(v, quote=quote)
+                              for v in self.converted_value]
             else:
                 if isinstance(self.converted_value, str):
                     value_string = self.converted_value
