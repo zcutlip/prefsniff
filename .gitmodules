@@ -1,0 +1,3 @@
+[submodule "submodules/repo-mgmt-scripts"]
+	path = submodules/repo-mgmt-scripts
+	url = https://github.com/zcutlip/repo-mgmt-scripts.git
