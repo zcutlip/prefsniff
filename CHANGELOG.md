@@ -14,3 +14,4 @@ Updated README.md installation instructions
 - Reformat python code
 - Replace project scripts with `repo-mgmt-scripts` submodule
 - Add .editorconfig
+- Replace `master` branch with `main`
