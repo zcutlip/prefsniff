@@ -7,10 +7,9 @@ Prefsniff
 
 Installing
 ----------
-    $ git clone <repo url> prefsniff
-    $ cd prefsniff
-    $ pip install -r ./requirements.txt
+If you're here to simply use `prefsniff` and not to hack on it, there's no need to clone the git repo. You may simply install from PyPI via `pip`:
 
+    $ pip3 install prefsniff
 
 Using
 -----
@@ -37,6 +36,23 @@ File mode example:
     defaults write com.apple.dock orientation -string right
 
     *****************************
+
+
+Additional Reading
+------------------
+
+[Advanced `defaults(1)` Usage](https://shadowfile.inode.link/blog/2018/06/advanced-defaults1-usage/)
+
+An introduction to plist files and the `defaults(1)` command. Includes detailed explanation of each plist type and how to manipulate them with `defaults`.
+
+[Defaults Non-obvious Locations](https://shadowfile.inode.link/blog/2018/08/defaults-non-obvious-locations/)
+
+An explanation of various defaults domains and where their corresponding plist files can be found on disk.
+
+
+[Autogenerating `defaults(1)` Commands](https://shadowfile.inode.link/blog/2018/08/autogenerating-defaults1-commands/)
+
+An introduction to this tool, `prefsniff`, and how to use it to autogenerate `defaults` commands.
 
 TODO
 ----
