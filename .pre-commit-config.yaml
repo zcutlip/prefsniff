@@ -1,0 +1,29 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-json
+        exclude: ^\.vscode\/.*$
+      - id: check-yaml
+      - id: check-merge-conflict
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.0.0
+    hooks:
+    - id: flake8
+  - repo: https://github.com/pre-commit/mirrors-autopep8
+    rev: 'v2.0.1'
+    hooks:
+    - id: autopep8
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+      - id: isort
+        name: isort (cython)
+        types: [cython]
+      - id: isort
+        name: isort (pyi)
+        types: [pyi]
+ci:
+  autoupdate_branch: 'development'
