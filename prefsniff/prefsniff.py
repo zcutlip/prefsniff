@@ -37,6 +37,11 @@ from .version import PrefsniffAbout
 STARS = "*****************************"
 
 
+class PSChangeTypeErrorMessage(str):
+    def __new__(cls, err_msg, *args, **kwargs):
+        return super().__new__(cls, err_msg)
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
