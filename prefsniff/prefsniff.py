@@ -37,6 +37,11 @@ from .version import PrefsniffAbout
 STARS = "*****************************"
 
 
+class PSChangeTypeErrorMessage(str):
+    def __new__(cls, err_msg, *args, **kwargs):
+        return super().__new__(cls, err_msg)
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -278,7 +283,8 @@ class PrefSniff:
             try:
                 change = change_type(domain, self.byhost, k, v)
             except PSChangeTypeNotImplementedException as e:
-                change = ("key: %s, %s" % (k, str(e)))
+                err_msg = f"key: {k}, {e}"
+                change = PSChangeTypeErrorMessage(err_msg)
 
             changes.append(change)
 
@@ -320,7 +326,8 @@ class PrefSniff:
                 try:
                     change = change_type(domain, self.byhost, key, val[1])
                 except PSChangeTypeNotImplementedException as e:
-                    change = ("key: %s, %s" % (key, str(e)))
+                    err_msg = f"key: {key}, {e}"
+                    change = PSChangeTypeErrorMessage(err_msg)
                 changes.append(change)
 
         for key, val in rewrite_dictionaries.items():
@@ -513,7 +520,14 @@ def main():
             print(STARS)
             print("")
             for ch in diffs.changes:
-                ch_dict = dict(ch)
+                if isinstance(ch, PSChangeTypeErrorMessage):
+                    print(f"ERROR: {ch}", file=sys.stderr)
+                    continue
+                try:
+                    ch_dict = dict(ch)
+                except ValueError:
+                    print(f"type(ch): {type(ch)}")
+                    print(ch)
                 new_ch = PSChangeTypeFactory.ps_change_type_from_dict(ch_dict)
                 print(new_ch.shell_command())
                 print("")
